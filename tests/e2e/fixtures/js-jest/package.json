@@ -1,0 +1,6 @@
+{
+  "name": "antibody-e2e-jest",
+  "private": true,
+  "scripts": { "test": "jest" },
+  "devDependencies": { "jest": "^30.0.0", "jest-junit": "^16.0.0" }
+}

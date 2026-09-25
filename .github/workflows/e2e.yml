@@ -1,0 +1,74 @@
+name: e2e
+# Runs Antibody end to end against the real test runner of every profile
+# (tests/e2e/run_e2e.py). A profile is "verified" only while its job is green.
+on:
+  push:
+    branches: [main, "b/**"]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  profile:
+    name: ${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        profile:
+          - python-pytest
+          - js-vitest
+          - js-jest
+          - java-maven
+          - java-gradle
+          - go-gotestsum
+          - dotnet
+          - rust-nextest
+          - ruby-rspec
+          - php-phpunit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Antibody, Semgrep and pytest
+        run: pip install -e . semgrep pytest
+
+      - if: startsWith(matrix.profile, 'js-')
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - if: startsWith(matrix.profile, 'java-')
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - if: matrix.profile == 'java-gradle'
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: current
+      - if: matrix.profile == 'go-gotestsum'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - if: matrix.profile == 'go-gotestsum'
+        run: go install gotest.tools/gotestsum@latest
+      - if: matrix.profile == 'dotnet'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - if: matrix.profile == 'rust-nextest'
+        uses: dtolnay/rust-toolchain@stable
+      - if: matrix.profile == 'rust-nextest'
+        uses: taiki-e/install-action@nextest
+      - if: matrix.profile == 'ruby-rspec'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - if: matrix.profile == 'php-phpunit'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: composer
+
+      - name: Antibody end to end
+        run: python tests/e2e/run_e2e.py ${{ matrix.profile }}
