@@ -20,6 +20,7 @@ dev = ["pytest>=7"]
 antibody = "antibody.cli:main"
 
 [tool.setuptools]
+package-dir = {"" = "../.."}
 packages = ["antibody"]
 
 [tool.setuptools.package-data]
