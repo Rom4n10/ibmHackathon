@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Antibody scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #E9EEF0;
+    --panel: #F6F8F9;
+    --ink: #14232B;
+    --muted: #5B6B73;
+    --rule: #C5D0D5;
+    --stain: #7A2E8E;      /* crystal violet: a caught variant */
+    --escape: #C47A12;     /* amber ring: a variant that got through */
+    --red: #B3372B;
+    --green: #2E7D55;
+    --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0E1A20; --panel: #15242C; --ink: #DCE4E7; --muted: #8FA1A9;
+      --rule: #2A3C45; --stain: #B57AC8; --escape: #E0A145; --red: #E0675B; --green: #5DB388;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0E1A20; --panel: #15242C; --ink: #DCE4E7; --muted: #8FA1A9;
+    --rule: #2A3C45; --stain: #B57AC8; --escape: #E0A145; --red: #E0675B; --green: #5DB388;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 48px; }
+
+  header.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline; justify-content: space-between; }
+  .brand { font-weight: 600; font-size: 20px; letter-spacing: -0.01em; }
+  .brand small { font-weight: 400; color: var(--muted); font-size: 15px; margin-left: 10px; }
+  .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  button, .file-btn {
+    font: 500 15px/1 var(--sans); color: var(--ink); background: var(--panel);
+    border: 1px solid var(--rule); border-radius: 6px; padding: 10px 14px; cursor: pointer;
+  }
+  button.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  button:focus-visible, .file-btn:focus-within, .well:focus-visible { outline: 3px solid var(--stain); outline-offset: 2px; }
+  .file-btn input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .sample-note { color: var(--escape); font-size: 14px; }
+
+  .cause { margin: 28px 0 8px; font-size: clamp(24px, 3.2vw, 34px); line-height: 1.2; font-weight: 400; max-width: 30ch; letter-spacing: -0.015em; }
+  .pattern { margin: 0; color: var(--muted); max-width: 72ch; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; margin-top: 28px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 22px; }
+  .panel h2 { font-size: 15px; font-weight: 600; margin: 0 0 14px; }
+
+  .score { font-weight: 300; font-size: clamp(88px, 13vw, 150px); line-height: 0.9; letter-spacing: -0.04em; }
+  .score-label { margin-top: 10px; color: var(--muted); }
+  .rounds-line { display: flex; gap: 8px; margin-top: 22px; flex-wrap: wrap; }
+  .round-pill { border: 1px solid var(--rule); border-radius: 999px; padding: 4px 12px; font-size: 14px; color: var(--muted); }
+  .round-pill.on { border-color: var(--stain); color: var(--ink); }
+
+  .plate { display: grid; gap: 10px; overflow-x: auto; }
+  .plate-row { display: grid; grid-template-columns: 140px 1fr; align-items: center; gap: 12px; }
+  .plate-row .name { font-size: 14px; color: var(--muted); }
+  .plate-row .name b { color: var(--ink); font-weight: 500; display: block; }
+  .wells { display: flex; gap: 12px; flex-wrap: wrap; }
+  .well {
+    width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--rule);
+    background: transparent; padding: 0; position: relative;
+    transition: background-color 220ms ease, border-color 220ms ease, transform 220ms ease;
+  }
+  .well[data-state="detected"] { background: var(--stain); border-color: var(--stain); }
+  .well[data-state="escaped"] { border: 3px solid var(--escape); }
+  .well[data-state="invalid"] { border-style: dashed; }
+  .well[data-state="detected"]::after {
+    content: ""; position: absolute; inset: 14px; border-radius: 50%; background: var(--panel); opacity: 0.35;
+  }
+  .well.pop { transform: scale(1.12); }
+  .col-heads { display: grid; grid-template-columns: 140px 1fr; gap: 12px; }
+  .col-heads .ids { display: flex; gap: 12px; }
+  .col-heads .ids span { width: 46px; text-align: center; font-size: 13px; color: var(--muted); }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: 14px; color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; margin-right: 6px; }
+  .legend .l-det { background: var(--stain); }
+  .legend .l-esc { border: 3px solid var(--escape); }
+  .detail { margin-top: 14px; min-height: 48px; font-size: 15px; }
+
+  .twins { list-style: none; margin: 0; padding: 0; }
+  .twin { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 14px 0; border-top: 1px solid var(--rule); }
+  .twin:first-child { border-top: 0; }
+  .twin .id { font-weight: 600; }
+  .twin code { font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; }
+  .twin p { margin: 4px 0 0; color: var(--muted); font-size: 15px; max-width: 70ch; }
+  .status { font-size: 14px; font-weight: 500; padding: 4px 10px; border-radius: 6px; white-space: nowrap; border: 1px solid var(--rule); color: var(--muted); }
+  .status[data-s="confirmed"] { color: var(--red); border-color: var(--red); }
+  .status[data-s="fixed"] { color: var(--green); border-color: var(--green); }
+  .twin[data-s="rejected"] { opacity: 0.55; }
+
+  .bottom { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 20px; margin-top: 20px; }
+  @media (max-width: 860px) { .bottom { grid-template-columns: minmax(0, 1fr); } }
+  .timeline { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
+  .timeline li { display: grid; grid-template-columns: 64px 1fr; gap: 10px; padding: 6px 0; font-size: 15px; }
+  .timeline .t { color: var(--muted); }
+  .bars { display: grid; gap: 14px; }
+  .bar-label { font-size: 15px; margin-bottom: 6px; }
+  .bar { height: 14px; border-radius: 7px; background: var(--rule); overflow: hidden; }
+  .bar span { display: block; height: 100%; border-radius: 7px; }
+  .bar .manual { background: var(--muted); }
+  .bar .auto { background: var(--stain); }
+  .empty { color: var(--muted); }
+  @media (max-width: 560px) {
+    .wrap { padding: 20px 16px 40px; }
+    .panel { padding: 18px; }
+    .plate-row, .col-heads { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .col-heads > span:first-child { display: none; }
+    .plate-row .name { display: flex; gap: 8px; align-items: baseline; }
+    .well { width: 36px; height: 36px; }
+    .well[data-state="detected"]::after { inset: 11px; }
+    .wells, .col-heads .ids { gap: 8px; }
+    .col-heads .ids span { width: 36px; }
+    .twin { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "id status" "body body"; gap: 6px 12px; }
+    .twin .id { grid-area: id; }
+    .twin > div { grid-area: body; }
+    .twin .status { grid-area: status; }
+  }
+  @media (prefers-reduced-motion: reduce) { .well { transition: none; } .well.pop { transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Antibody <small id="repo"></small></div>
+    <div class="actions">
+      <span class="sample-note" id="sampleNote" hidden>Showing example data</span>
+      <label class="file-btn">Open scoreboard.json<input type="file" id="file" accept="application/json,.json"></label>
+      <button class="primary" id="replay" type="button">Replay run</button>
+    </div>
+  </header>
+
+  <h1 class="cause" id="cause"></h1>
+  <p class="pattern" id="pattern"></p>
+
+  <section class="grid">
+    <div class="panel" aria-live="polite">
+      <h2>Immunity</h2>
+      <div class="score" id="score">–</div>
+      <div class="score-label" id="scoreLabel"></div>
+      <div class="rounds-line" id="roundPills"></div>
+    </div>
+    <div class="panel">
+      <h2>Vaccine plate: each well is a realistic variant of the bug</h2>
+      <div class="plate" id="plate"></div>
+      <div class="legend">
+        <span><i class="l-det"></i>Caught by the defenses</span>
+        <span><i class="l-esc"></i>Got through</span>
+      </div>
+      <div class="detail" id="detail">Select a well to see the variant.</div>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:20px">
+    <h2 id="twinsTitle">Twins</h2>
+    <ul class="twins" id="twins"></ul>
+  </section>
+
+  <section class="bottom">
+    <div class="panel">
+      <h2>Run timeline</h2>
+      <ol class="timeline" id="timeline"></ol>
+    </div>
+    <div class="panel">
+      <h2>By hand vs Antibody</h2>
+      <div class="bars" id="bars"></div>
+    </div>
+  </section>
+</div>
+
+<script id="sample" type="application/json">
+{"run_id":"20260926-101500","title":"A timezone-aware datetime is mixed with a naive datetime.now()","repo":"example/billing-service (sample data)","root_cause":{"title":"A timezone-aware datetime is mixed with a naive datetime.now()","pattern":"Comparison or arithmetic between a timezone-aware datetime (from the database or API) and a naive value produced by datetime.now(), datetime.utcnow() or datetime.today() without a tz argument."},"original":{"file":"billing/invoices.py","line":88},"twins":[{"id":"c01","file":"billing/subscriptions.py","line":142,"status":"fixed","reasoning":"renews_at is loaded from the same aware column type and compared with a naive now()."},{"id":"c02","file":"billing/reminders.py","line":57,"status":"fixed","reasoning":"utcnow() is naive too; subtracting it from an aware due_at raises TypeError."},{"id":"c03","file":"billing/api/webhooks.py","line":203,"status":"fixed","reasoning":"received_at is parsed with an explicit offset, so it is aware."},{"id":"c04","file":"billing/reports/monthly.py","line":31,"status":"suspected","reasoning":"cutoff is later compared with aware values, but only inside a Celery task that is hard to test in isolation."},{"id":"c05","file":"billing/logging_utils.py","line":12,"status":"rejected","reasoning":"Naive now() but only formatted as a string; never compared."}],"rounds":[{"round":0,"label":"Before Antibody","score":0.1667,"variants":[{"id":"v01","kind":"syntax","description":"The original comparison, re-introduced in invoices.py","status":"detected","detected_by":["tests"]},{"id":"v02","kind":"relocation","description":"Same comparison in a new refunds module","status":"escaped","detected_by":[]},{"id":"v03","kind":"syntax","description":"Subtraction instead of comparison: (due_at - now()).days","status":"escaped","detected_by":[]},{"id":"v04","kind":"api_alias","description":"utcnow() instead of now(): still naive","status":"escaped","detected_by":[]},{"id":"v05","kind":"indirection","description":"now() stored in a variable and compared two functions later","status":"escaped","detected_by":[]},{"id":"v06","kind":"syntax","description":"Reversed operands in a payouts check: now() > hold_until","status":"escaped","detected_by":[]}]},{"round":1,"label":"Round 1","score":0.5,"variants":[{"id":"v01","kind":"syntax","description":"The original comparison, re-introduced in invoices.py","status":"detected","detected_by":["rule","tests"]},{"id":"v02","kind":"relocation","description":"Same comparison in a new refunds module","status":"detected","detected_by":["rule"]},{"id":"v03","kind":"syntax","description":"Subtraction instead of comparison: (due_at - now()).days","status":"escaped","detected_by":[]},{"id":"v04","kind":"api_alias","description":"utcnow() instead of now(): still naive","status":"escaped","detected_by":[]},{"id":"v05","kind":"indirection","description":"now() stored in a variable and compared two functions later","status":"escaped","detected_by":[]},{"id":"v06","kind":"syntax","description":"Reversed operands in a payouts check: now() > hold_until","status":"detected","detected_by":["rule"]}]},{"round":2,"label":"Round 2","score":1.0,"variants":[{"id":"v01","kind":"syntax","description":"The original comparison, re-introduced in invoices.py","status":"detected","detected_by":["rule","tests"]},{"id":"v02","kind":"relocation","description":"Same comparison in a new refunds module","status":"detected","detected_by":["rule"]},{"id":"v03","kind":"syntax","description":"Subtraction instead of comparison: (due_at - now()).days","status":"detected","detected_by":["rule"]},{"id":"v04","kind":"api_alias","description":"utcnow() instead of now(): still naive","status":"detected","detected_by":["rule"]},{"id":"v05","kind":"indirection","description":"now() stored in a variable and compared two functions later","status":"detected","detected_by":["rule"]},{"id":"v06","kind":"syntax","description":"Reversed operands in a payouts check: now() > hold_until","status":"detected","detected_by":["rule"]}]}],"timeline":[{"t_min":0.0,"kind":"run_started","label":"Run started from fix a1b2c3d (invoice expiry crash)"},{"t_min":0.9,"kind":"diagnosis","label":"Root cause: aware datetime mixed with a naive now()"},{"t_min":2.1,"kind":"candidates","label":"5 candidates found across 5 files"},{"t_min":3.2,"kind":"twin_confirmed","label":"c01 confirmed with a failing test"},{"t_min":3.3,"kind":"twin_confirmed","label":"c02 confirmed with a failing test"},{"t_min":3.7,"kind":"twin_confirmed","label":"c03 confirmed with a failing test"},{"t_min":3.9,"kind":"twin_suspected","label":"c04 suspected: Celery task not testable in isolation"},{"t_min":4.0,"kind":"twin_rejected","label":"c05 rejected: string formatting only"},{"t_min":5.1,"kind":"twin_fixed","label":"c01 fixed, test is green"},{"t_min":5.2,"kind":"twin_fixed","label":"c02 fixed, test is green"},{"t_min":5.3,"kind":"twin_fixed","label":"c03 fixed, test is green"},{"t_min":6.7,"kind":"vaccine_round","label":"Round 0: immunity 17% (1/6), escaped: v02, v03, v04, v05, v06"},{"t_min":8.1,"kind":"vaccine_round","label":"Round 1: immunity 50% (3/6), escaped: v03, v04, v05"},{"t_min":9.6,"kind":"vaccine_round","label":"Round 2: immunity 100% (6/6)"},{"t_min":10.0,"kind":"antibody_created","label":"Antibody 001-naive-vs-aware-datetime created"}],"baseline":{"manual_minutes":90,"manual_twins":1},"duration_minutes":10.0}
+</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const STATUS_TEXT = {
+    unproven: "Not proven", confirmed: "Failing test", fixed: "Fixed, test green",
+    suspected: "Suspected", rejected: "Not a twin",
+  };
+  let data = null;
+  let timers = [];
+
+  const pct = (x) => `${Math.round(x * 100)}%`;
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+  const later = (ms, fn) => timers.push(setTimeout(fn, ms));
+  const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function renderStatic() {
+    $("repo").textContent = data.repo || "";
+    $("cause").textContent = data.root_cause.title;
+    $("pattern").textContent = data.root_cause.pattern;
+
+    const proven = data.twins.filter((t) => ["confirmed", "fixed"].includes(t.status)).length;
+    $("twinsTitle").textContent = `Twins of the original bug at ${data.original.file}:${data.original.line}` +
+      ` (${proven} proven with a failing test)`;
+    $("twins").innerHTML = data.twins.map((t) => `
+      <li class="twin" id="twin-${t.id}" data-s="unproven">
+        <span class="id">${escapeHtml(t.id)}</span>
+        <div><code>${escapeHtml(t.file)}:${t.line}</code><p>${escapeHtml(t.reasoning || "")}</p></div>
+        <span class="status" data-s="unproven">${STATUS_TEXT.unproven}</span>
+      </li>`).join("") || `<li class="empty">No candidates in this run.</li>`;
+
+    const ids = data.rounds[0] ? data.rounds[0].variants.map((v) => v.id) : [];
+    $("plate").innerHTML = ids.length ? `
+      <div class="col-heads"><span></span><div class="ids">${ids.map((i) => `<span>${i}</span>`).join("")}</div></div>
+      ${data.rounds.map((r, ri) => `
+        <div class="plate-row">
+          <div class="name"><b>${escapeHtml(r.label)}</b><span id="rowscore-${ri}"></span></div>
+          <div class="wells">${r.variants.map((v, vi) => `
+            <button class="well" type="button" id="well-${ri}-${vi}" data-state="empty"
+              aria-label="${escapeHtml(r.label)}, ${escapeHtml(v.id)}: pending"></button>`).join("")}
+          </div>
+        </div>`).join("")}` : `<p class="empty">No vaccine rounds yet. Run antibody vaccine --round 0.</p>`;
+
+    data.rounds.forEach((r, ri) => r.variants.forEach((v, vi) => {
+      $(`well-${ri}-${vi}`).addEventListener("click", () => {
+        const by = v.detected_by.length ? ` Caught by: ${v.detected_by.join(" and ")}.` : "";
+        const verdict = v.status === "detected" ? "Caught." : v.status === "escaped" ? "Got through." : "Invalid variant.";
+        const desc = /[.!?]$/.test(v.description || "") ? v.description : `${v.description || ""}.`;
+        $("detail").innerHTML = `<b>${escapeHtml(v.id)}</b> (${escapeHtml(v.kind || "variant")}), ${escapeHtml(r.label)}: ` +
+          `${escapeHtml(desc)} ${verdict}${by}`;
+      });
+    }));
+
+    $("roundPills").innerHTML = data.rounds.map((r, ri) =>
+      `<span class="round-pill" id="pill-${ri}">${escapeHtml(r.label)}: ${pct(r.score)}</span>`).join("");
+
+    $("timeline").innerHTML = data.timeline.map((e) =>
+      `<li><span class="t">${e.t_min.toFixed(1)} min</span><span>${escapeHtml(e.label)}</span></li>`).join("");
+
+    const b = data.baseline;
+    if (b && b.manual_minutes) {
+      const max = Math.max(b.manual_minutes, data.duration_minutes, 1);
+      $("bars").innerHTML = `
+        <div><div class="bar-label">By hand: ${b.manual_minutes} min, ${b.manual_twins} twin${b.manual_twins === 1 ? "" : "s"} found, none proven</div>
+          <div class="bar"><span class="manual" style="width:${(b.manual_minutes / max) * 100}%"></span></div></div>
+        <div><div class="bar-label">Antibody: ${data.duration_minutes} min, ${proven} twin${proven === 1 ? "" : "s"} proven with tests</div>
+          <div class="bar"><span class="auto" style="width:${Math.max((data.duration_minutes / max) * 100, 2)}%"></span></div></div>`;
+    } else {
+      $("bars").innerHTML = `<p class="empty">Record the manual baseline with antibody baseline --minutes N --twins N.</p>`;
+    }
+  }
+
+  function setTwin(t, status) {
+    const row = $(`twin-${t.id}`);
+    if (!row) return;
+    row.dataset.s = status;
+    const badge = row.querySelector(".status");
+    badge.dataset.s = status;
+    badge.textContent = STATUS_TEXT[status] || status;
+  }
+
+  function setWell(ri, vi, v, pop) {
+    const el = $(`well-${ri}-${vi}`);
+    el.dataset.state = v.status;
+    el.setAttribute("aria-label", `${data.rounds[ri].label}, ${v.id}: ${v.status === "detected" ? "caught" : v.status}`);
+    if (pop && !reduceMotion) { el.classList.add("pop"); later(240, () => el.classList.remove("pop")); }
+  }
+
+  function setScore(ri, animate) {
+    const r = data.rounds[ri];
+    const detected = r.variants.filter((v) => v.status === "detected").length;
+    const valid = r.variants.filter((v) => v.status !== "invalid").length;
+    $("scoreLabel").textContent = `${r.label}: ${detected} of ${valid} variants caught`;
+    $("rowscore-" + ri).textContent = pct(r.score);
+    document.querySelectorAll(".round-pill").forEach((p, i) => p.classList.toggle("on", i === ri));
+    const target = Math.round(r.score * 100);
+    const el = $("score");
+    const from = parseInt(el.textContent, 10) || 0;
+    if (!animate || reduceMotion) { el.textContent = `${target}%`; return; }
+    const start = performance.now();
+    const step = (now) => {
+      const k = Math.min((now - start) / 600, 1);
+      el.textContent = `${Math.round(from + (target - from) * k)}%`;
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function showFinal() {
+    clearTimers();
+    data.twins.forEach((t) => setTwin(t, t.status));
+    data.rounds.forEach((r, ri) => {
+      r.variants.forEach((v, vi) => setWell(ri, vi, v, false));
+      $("rowscore-" + ri).textContent = pct(r.score);
+    });
+    if (data.rounds.length) setScore(data.rounds.length - 1, false);
+  }
+
+  function replay() {
+    if (reduceMotion) { showFinal(); return; }
+    clearTimers();
+    renderStatic();
+    $("score").textContent = "–";
+    $("scoreLabel").textContent = "Proving twins...";
+    let t = 400;
+    const proven = data.twins.filter((x) => ["confirmed", "fixed"].includes(x.status));
+    proven.forEach((tw) => { later(t, () => setTwin(tw, "confirmed")); t += 450; });
+    data.twins.filter((x) => ["suspected", "rejected"].includes(x.status))
+      .forEach((tw) => { later(t, () => setTwin(tw, tw.status)); t += 250; });
+    t += 400;
+    proven.filter((x) => x.status === "fixed").forEach((tw) => { later(t, () => setTwin(tw, "fixed")); t += 350; });
+    t += 500;
+    data.rounds.forEach((r, ri) => {
+      r.variants.forEach((v, vi) => { later(t, () => setWell(ri, vi, v, true)); t += 170; });
+      later(t, () => setScore(ri, true));
+      t += 1200;
+    });
+  }
+
+  function load(json, isSample) {
+    data = json;
+    $("sampleNote").hidden = !isSample;
+    renderStatic();
+    showFinal();
+  }
+
+  $("replay").addEventListener("click", replay);
+  $("file").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try { load(JSON.parse(reader.result), false); }
+      catch (err) { $("detail").textContent = `This file is not a valid scoreboard.json: ${err.message}`; }
+    };
+    reader.readAsText(f);
+  });
+
+  const src = new URLSearchParams(location.search).get("src");
+  const sample = JSON.parse($("sample").textContent);
+  if (src) {
+    fetch(src).then((r) => r.json()).then((j) => load(j, false))
+      .catch(() => { load(sample, true); $("detail").textContent = `Could not load ${src}. Showing example data.`; });
+  } else {
+    load(sample, true);
+  }
+})();
+</script>
+</body>
+</html>

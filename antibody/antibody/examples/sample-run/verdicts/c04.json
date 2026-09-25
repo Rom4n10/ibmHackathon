@@ -1,0 +1,9 @@
+{
+  "candidate_id": "c04",
+  "status": "suspected",
+  "reason": "Same pattern, but the Celery task could not be exercised in an isolated test within the budget.",
+  "test": null,
+  "red": null,
+  "green": null,
+  "fix_summary": null
+}

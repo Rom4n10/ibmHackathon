@@ -1,0 +1,9 @@
+{
+  "candidate_id": "c05",
+  "status": "rejected",
+  "reason": "The naive value is only formatted as a string and never meets an aware datetime.",
+  "test": null,
+  "red": null,
+  "green": null,
+  "fix_summary": null
+}

@@ -1,0 +1,26 @@
+{
+  "run_id": "20260926-101500",
+  "source": {
+    "type": "fix_commit",
+    "ref": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+    "fix_commit": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+    "parent_commit": "0f1e2d3c4b5a69788796a5b4c3d2e1f098765432",
+    "issue": "#412"
+  },
+  "root_cause": {
+    "title": "A timezone-aware datetime is mixed with a naive datetime.now()",
+    "pattern": "Comparison or arithmetic between a timezone-aware datetime (from the database or API) and a naive value produced by datetime.now(), datetime.utcnow() or datetime.today() without a tz argument.",
+    "why_it_breaks": "Python raises TypeError when naive and aware datetimes are compared or subtracted, so every code path that mixes them crashes as soon as it receives an aware value.",
+    "trigger_conditions": [
+      "the value comes from a timezone-aware source such as the database driver",
+      "the other side is created with now(), utcnow() or today() without tz"
+    ],
+    "fix_strategy": "Create the current time as datetime.now(timezone.utc) and keep every datetime in the service timezone-aware.",
+    "language": "python"
+  },
+  "original_instance": {
+    "file": "billing/invoices.py",
+    "line": 88,
+    "snippet": "if invoice.expires_at < datetime.now():"
+  }
+}

@@ -1,0 +1,6 @@
+diff --git a/billing/reminders.py b/billing/reminders.py
+--- a/billing/reminders.py
++++ b/billing/reminders.py
+@@ -55,5 +55,5 @@ def days_until_due(invoice):
+-    return (invoice.due_at - datetime.now(timezone.utc)).days
++    return (invoice.due_at - datetime.now()).days

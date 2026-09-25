@@ -1,0 +1,9 @@
+diff --git a/billing/payouts.py b/billing/payouts.py
+--- a/billing/payouts.py
++++ b/billing/payouts.py
+@@ -30,6 +30,8 @@ def release_payout(payout):
+     if payout.frozen:
+         return False
++    if datetime.now() > payout.hold_until:
++        payout.status = "released"
+     return True

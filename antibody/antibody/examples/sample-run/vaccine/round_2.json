@@ -1,0 +1,62 @@
+{
+  "run_id": "20260926-101500",
+  "round": 2,
+  "rule_file": "examples/sample-run/rule.v2.yml",
+  "rule_sha256": "8b27e4c18b27e4c18b27e4c18b27e4c18b27e4c18b27e4c18b27e4c18b27e4c1",
+  "tests_target": [],
+  "results": [
+    {
+      "variant_id": "v01",
+      "status": "detected",
+      "detected_by": [
+        "rule",
+        "tests"
+      ],
+      "detail": "rule matched"
+    },
+    {
+      "variant_id": "v02",
+      "status": "detected",
+      "detected_by": [
+        "rule"
+      ],
+      "detail": "rule matched"
+    },
+    {
+      "variant_id": "v03",
+      "status": "detected",
+      "detected_by": [
+        "rule"
+      ],
+      "detail": "rule matched"
+    },
+    {
+      "variant_id": "v04",
+      "status": "detected",
+      "detected_by": [
+        "rule"
+      ],
+      "detail": "rule matched"
+    },
+    {
+      "variant_id": "v05",
+      "status": "detected",
+      "detected_by": [
+        "rule"
+      ],
+      "detail": "rule matched"
+    },
+    {
+      "variant_id": "v06",
+      "status": "detected",
+      "detected_by": [
+        "rule"
+      ],
+      "detail": "rule matched"
+    }
+  ],
+  "valid": 6,
+  "detected": 6,
+  "score": 1.0,
+  "recorded_at": "2026-09-26T10:24:31+00:00"
+}

@@ -1,0 +1,24 @@
+# Copy to <target-repo>/.github/workflows/antibody-guard.yml
+# Runs every antibody rule on each pull request. A match fails the check and
+# shows the rule message: the memory of what happened last time.
+name: antibody-guard
+on:
+  pull_request:
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Semgrep
+        run: pip install semgrep
+      - name: Run antibody rules
+        run: |
+          shopt -s nullglob
+          rules=(.antibody/antibodies/*/rule.yml)
+          if [ ${#rules[@]} -eq 0 ]; then echo "No antibodies yet."; exit 0; fi
+          args=()
+          for r in "${rules[@]}"; do args+=(--config "$r"); done
+          semgrep scan "${args[@]}" --error --metrics=off --exclude tests/antibody

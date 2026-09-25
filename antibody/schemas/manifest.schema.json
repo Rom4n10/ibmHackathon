@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "antibody/manifest.schema.json",
+  "title": "Antibody manifest (phase 4, written by the CLI)",
+  "description": "The permanent record of one antibody. Lives in .antibody/antibodies/<NNN-slug>/manifest.json.",
+  "type": "object",
+  "required": ["id", "slug", "created_at", "run_id", "source", "root_cause", "twins", "rule_file", "immunity", "memory"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^[0-9]{3}$"},
+    "slug": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
+    "created_at": {"type": "string"},
+    "run_id": {"type": "string"},
+    "source": {"type": "object"},
+    "root_cause": {"type": "object", "required": ["title", "pattern"]},
+    "twins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["candidate_id", "file", "line", "status"],
+        "properties": {
+          "candidate_id": {"type": "string"},
+          "file": {"type": "string"},
+          "line": {"type": "integer"},
+          "status": {"enum": ["confirmed", "fixed"]},
+          "test_file": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "rule_file": {"type": "string"},
+    "immunity": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["round", "score", "valid", "detected"],
+        "properties": {
+          "round": {"type": "integer"},
+          "score": {"type": "number"},
+          "valid": {"type": "integer"},
+          "detected": {"type": "integer"}
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "required": ["summary", "fix_commit"],
+      "properties": {
+        "summary": {"type": "string"},
+        "fix_commit": {"type": ["string", "null"]},
+        "links": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

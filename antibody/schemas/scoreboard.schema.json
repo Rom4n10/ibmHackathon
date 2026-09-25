@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "antibody/scoreboard.schema.json",
+  "title": "Scoreboard data (written by the CLI, read by ui/scoreboard.html)",
+  "type": "object",
+  "required": ["run_id", "title", "root_cause", "original", "twins", "rounds", "timeline", "duration_minutes"],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {"type": "string"},
+    "title": {"type": "string"},
+    "repo": {"type": ["string", "null"]},
+    "root_cause": {
+      "type": "object",
+      "required": ["title", "pattern"],
+      "properties": {"title": {"type": "string"}, "pattern": {"type": "string"}}
+    },
+    "original": {
+      "type": "object",
+      "required": ["file", "line"],
+      "properties": {"file": {"type": "string"}, "line": {"type": "integer"}}
+    },
+    "twins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "file", "line", "status"],
+        "properties": {
+          "id": {"type": "string"},
+          "file": {"type": "string"},
+          "line": {"type": "integer"},
+          "status": {"enum": ["unproven", "confirmed", "fixed", "suspected", "rejected"]},
+          "reasoning": {"type": "string"}
+        }
+      }
+    },
+    "rounds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["round", "label", "score", "variants"],
+        "properties": {
+          "round": {"type": "integer"},
+          "label": {"type": "string"},
+          "score": {"type": "number", "minimum": 0, "maximum": 1},
+          "variants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "status", "detected_by"],
+              "properties": {
+                "id": {"type": "string"},
+                "kind": {"type": "string"},
+                "description": {"type": "string"},
+                "status": {"enum": ["detected", "escaped", "invalid"]},
+                "detected_by": {"type": "array", "items": {"type": "string"}}
+              }
+            }
+          }
+        }
+      }
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["t_min", "kind", "label"],
+        "properties": {
+          "t_min": {"type": "number", "minimum": 0},
+          "kind": {"type": "string"},
+          "label": {"type": "string"}
+        }
+      }
+    },
+    "baseline": {
+      "type": ["object", "null"],
+      "properties": {
+        "manual_minutes": {"type": "number"},
+        "manual_twins": {"type": "integer"}
+      }
+    },
+    "duration_minutes": {"type": "number", "minimum": 0}
+  }
+}

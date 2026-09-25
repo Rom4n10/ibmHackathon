@@ -1,0 +1,10 @@
+diff --git a/billing/invoices.py b/billing/invoices.py
+--- a/billing/invoices.py
++++ b/billing/invoices.py
+@@ -85,7 +85,7 @@ def is_payable(invoice):
+     if invoice.cancelled:
+         return False
+-    if invoice.expires_at < datetime.now(timezone.utc):
++    if invoice.expires_at < datetime.now():
+         return False
+     return invoice.balance > 0

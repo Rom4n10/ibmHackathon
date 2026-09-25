@@ -1,0 +1,47 @@
+{
+  "run_id": "20260926-101500",
+  "variants": [
+    {
+      "id": "v01",
+      "kind": "syntax",
+      "description": "The original comparison, re-introduced in invoices.py",
+      "target_file": "billing/invoices.py",
+      "patch": "variants/v01.patch"
+    },
+    {
+      "id": "v02",
+      "kind": "relocation",
+      "description": "Same comparison in a new refunds module",
+      "target_file": "billing/refunds.py",
+      "patch": "variants/v02.patch"
+    },
+    {
+      "id": "v03",
+      "kind": "syntax",
+      "description": "Subtraction instead of comparison: (due_at - now()).days",
+      "target_file": "billing/reminders.py",
+      "patch": "variants/v03.patch"
+    },
+    {
+      "id": "v04",
+      "kind": "api_alias",
+      "description": "utcnow() instead of now(): still naive",
+      "target_file": "billing/subscriptions.py",
+      "patch": "variants/v04.patch"
+    },
+    {
+      "id": "v05",
+      "kind": "indirection",
+      "description": "now() stored in a variable and compared two functions later",
+      "target_file": "billing/api/webhooks.py",
+      "patch": "variants/v05.patch"
+    },
+    {
+      "id": "v06",
+      "kind": "syntax",
+      "description": "Reversed operands in a payouts check: now() > hold_until",
+      "target_file": "billing/payouts.py",
+      "patch": "variants/v06.patch"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "run_id": "20260926-101500",
+  "search_notes": "Searched every call to now(), utcnow() and today() and every comparison or subtraction involving fields typed as aware datetimes. Ignored logging timestamps that never meet aware values.",
+  "candidates": [
+    {"id": "c01", "file": "billing/subscriptions.py", "line": 142, "snippet": "if sub.renews_at <= datetime.now():", "reasoning": "renews_at is loaded from the same aware column type and compared with a naive now().", "confidence": "high"},
+    {"id": "c02", "file": "billing/reminders.py", "line": 57, "snippet": "days = (invoice.due_at - datetime.utcnow()).days", "reasoning": "utcnow() is naive too; subtracting it from an aware due_at raises TypeError.", "confidence": "high"},
+    {"id": "c03", "file": "billing/api/webhooks.py", "line": 203, "snippet": "age = datetime.now() - event.received_at", "reasoning": "received_at is parsed with an explicit offset, so it is aware.", "confidence": "medium"},
+    {"id": "c04", "file": "billing/reports/monthly.py", "line": 31, "snippet": "cutoff = datetime.today().replace(day=1)", "reasoning": "cutoff is later compared with aware values, but only inside a Celery task that is hard to test in isolation.", "confidence": "medium"},
+    {"id": "c05", "file": "billing/logging_utils.py", "line": 12, "snippet": "stamp = datetime.now().isoformat()", "reasoning": "Naive now() but only formatted as a string; never compared.", "confidence": "low"}
+  ]
+}

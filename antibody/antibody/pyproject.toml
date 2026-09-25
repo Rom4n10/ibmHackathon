@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "antibody"
+version = "0.1.0"
+description = "An immune system for your repository, built on IBM Bob."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = []
+
+[project.optional-dependencies]
+# Needed on the machine that runs Antibody against a target repo.
+tools = ["pytest>=7", "semgrep>=1.50"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+antibody = "antibody.cli:main"
+
+[tool.setuptools]
+packages = ["antibody"]
+
+[tool.setuptools.package-data]
+antibody = ["schemas/*.json", "bob_template/bob/*", "bob_template/bob/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

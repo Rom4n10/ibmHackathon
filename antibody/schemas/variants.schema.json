@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "antibody/variants.schema.json",
+  "title": "Vaccine variants (phase 3, written by Bob)",
+  "description": "Realistic re-introductions of the same mistake. Each patch is a unified diff against HEAD, stored inside the run folder.",
+  "type": "object",
+  "required": ["run_id", "variants"],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {"type": "string"},
+    "variants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "description", "target_file", "patch"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^v[0-9]{2,}$"},
+          "kind": {"enum": ["syntax", "relocation", "indirection", "api_alias", "other"]},
+          "description": {"type": "string"},
+          "target_file": {"type": "string", "description": "Repo-relative file the patch modifies."},
+          "patch": {"type": "string", "description": "Path to the .patch file, relative to the run folder."}
+        }
+      }
+    }
+  }
+}

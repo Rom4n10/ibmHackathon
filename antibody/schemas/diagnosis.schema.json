@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "antibody/diagnosis.schema.json",
+  "title": "Diagnosis (phase 1, written by Bob)",
+  "description": "The abstract root cause extracted from a fix, PR, postmortem or incident log.",
+  "type": "object",
+  "required": ["run_id", "source", "root_cause", "original_instance"],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {"type": "string"},
+    "source": {
+      "type": "object",
+      "required": ["type", "ref"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {"enum": ["fix_commit", "pull_request", "postmortem", "incident_log"]},
+        "ref": {"type": "string", "description": "Commit SHA, PR URL or path to the document."},
+        "fix_commit": {"type": ["string", "null"]},
+        "parent_commit": {"type": ["string", "null"]},
+        "issue": {"type": ["string", "null"], "description": "Issue URL or id, if any."}
+      }
+    },
+    "root_cause": {
+      "type": "object",
+      "required": ["title", "pattern", "why_it_breaks", "trigger_conditions", "fix_strategy", "language"],
+      "additionalProperties": false,
+      "properties": {
+        "title": {"type": "string", "description": "One sentence a human can repeat. No file names."},
+        "pattern": {"type": "string", "description": "The abstract, code-level pattern. Must describe the mistake, not the location."},
+        "why_it_breaks": {"type": "string"},
+        "trigger_conditions": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "fix_strategy": {"type": "string"},
+        "language": {"type": "string"}
+      }
+    },
+    "original_instance": {
+      "type": "object",
+      "required": ["file", "line", "snippet"],
+      "additionalProperties": false,
+      "properties": {
+        "file": {"type": "string"},
+        "line": {"type": "integer", "minimum": 1},
+        "snippet": {"type": "string"}
+      }
+    }
+  }
+}

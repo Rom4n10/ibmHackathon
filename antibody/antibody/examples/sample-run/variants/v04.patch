@@ -1,0 +1,6 @@
+diff --git a/billing/subscriptions.py b/billing/subscriptions.py
+--- a/billing/subscriptions.py
++++ b/billing/subscriptions.py
+@@ -140,5 +140,5 @@ def needs_renewal(sub):
+-    return sub.renews_at <= datetime.now(timezone.utc)
++    return sub.renews_at <= datetime.utcnow()

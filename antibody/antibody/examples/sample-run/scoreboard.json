@@ -1,0 +1,303 @@
+{
+  "run_id": "20260926-101500",
+  "title": "A timezone-aware datetime is mixed with a naive datetime.now()",
+  "repo": "example/billing-service (sample data)",
+  "root_cause": {
+    "title": "A timezone-aware datetime is mixed with a naive datetime.now()",
+    "pattern": "Comparison or arithmetic between a timezone-aware datetime (from the database or API) and a naive value produced by datetime.now(), datetime.utcnow() or datetime.today() without a tz argument."
+  },
+  "original": {
+    "file": "billing/invoices.py",
+    "line": 88
+  },
+  "twins": [
+    {
+      "id": "c01",
+      "file": "billing/subscriptions.py",
+      "line": 142,
+      "status": "fixed",
+      "reasoning": "renews_at is loaded from the same aware column type and compared with a naive now()."
+    },
+    {
+      "id": "c02",
+      "file": "billing/reminders.py",
+      "line": 57,
+      "status": "fixed",
+      "reasoning": "utcnow() is naive too; subtracting it from an aware due_at raises TypeError."
+    },
+    {
+      "id": "c03",
+      "file": "billing/api/webhooks.py",
+      "line": 203,
+      "status": "fixed",
+      "reasoning": "received_at is parsed with an explicit offset, so it is aware."
+    },
+    {
+      "id": "c04",
+      "file": "billing/reports/monthly.py",
+      "line": 31,
+      "status": "suspected",
+      "reasoning": "cutoff is later compared with aware values, but only inside a Celery task that is hard to test in isolation."
+    },
+    {
+      "id": "c05",
+      "file": "billing/logging_utils.py",
+      "line": 12,
+      "status": "rejected",
+      "reasoning": "Naive now() but only formatted as a string; never compared."
+    }
+  ],
+  "rounds": [
+    {
+      "round": 0,
+      "label": "Before Antibody",
+      "score": 0.1667,
+      "variants": [
+        {
+          "id": "v01",
+          "kind": "syntax",
+          "description": "The original comparison, re-introduced in invoices.py",
+          "status": "detected",
+          "detected_by": [
+            "tests"
+          ]
+        },
+        {
+          "id": "v02",
+          "kind": "relocation",
+          "description": "Same comparison in a new refunds module",
+          "status": "escaped",
+          "detected_by": []
+        },
+        {
+          "id": "v03",
+          "kind": "syntax",
+          "description": "Subtraction instead of comparison: (due_at - now()).days",
+          "status": "escaped",
+          "detected_by": []
+        },
+        {
+          "id": "v04",
+          "kind": "api_alias",
+          "description": "utcnow() instead of now(): still naive",
+          "status": "escaped",
+          "detected_by": []
+        },
+        {
+          "id": "v05",
+          "kind": "indirection",
+          "description": "now() stored in a variable and compared two functions later",
+          "status": "escaped",
+          "detected_by": []
+        },
+        {
+          "id": "v06",
+          "kind": "syntax",
+          "description": "Reversed operands in a payouts check: now() > hold_until",
+          "status": "escaped",
+          "detected_by": []
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "label": "Round 1",
+      "score": 0.5,
+      "variants": [
+        {
+          "id": "v01",
+          "kind": "syntax",
+          "description": "The original comparison, re-introduced in invoices.py",
+          "status": "detected",
+          "detected_by": [
+            "rule",
+            "tests"
+          ]
+        },
+        {
+          "id": "v02",
+          "kind": "relocation",
+          "description": "Same comparison in a new refunds module",
+          "status": "detected",
+          "detected_by": [
+            "rule"
+          ]
+        },
+        {
+          "id": "v03",
+          "kind": "syntax",
+          "description": "Subtraction instead of comparison: (due_at - now()).days",
+          "status": "escaped",
+          "detected_by": []
+        },
+        {
+          "id": "v04",
+          "kind": "api_alias",
+          "description": "utcnow() instead of now(): still naive",
+          "status": "escaped",
+          "detected_by": []
+        },
+        {
+          "id": "v05",
+          "kind": "indirection",
+          "description": "now() stored in a variable and compared two functions later",
+          "status": "escaped",
+          "detected_by": []
+        },
+        {
+          "id": "v06",
+          "kind": "syntax",
+          "description": "Reversed operands in a payouts check: now() > hold_until",
+          "status": "detected",
+          "detected_by": [
+            "rule"
+          ]
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "label": "Round 2",
+      "score": 1.0,
+      "variants": [
+        {
+          "id": "v01",
+          "kind": "syntax",
+          "description": "The original comparison, re-introduced in invoices.py",
+          "status": "detected",
+          "detected_by": [
+            "rule",
+            "tests"
+          ]
+        },
+        {
+          "id": "v02",
+          "kind": "relocation",
+          "description": "Same comparison in a new refunds module",
+          "status": "detected",
+          "detected_by": [
+            "rule"
+          ]
+        },
+        {
+          "id": "v03",
+          "kind": "syntax",
+          "description": "Subtraction instead of comparison: (due_at - now()).days",
+          "status": "detected",
+          "detected_by": [
+            "rule"
+          ]
+        },
+        {
+          "id": "v04",
+          "kind": "api_alias",
+          "description": "utcnow() instead of now(): still naive",
+          "status": "detected",
+          "detected_by": [
+            "rule"
+          ]
+        },
+        {
+          "id": "v05",
+          "kind": "indirection",
+          "description": "now() stored in a variable and compared two functions later",
+          "status": "detected",
+          "detected_by": [
+            "rule"
+          ]
+        },
+        {
+          "id": "v06",
+          "kind": "syntax",
+          "description": "Reversed operands in a payouts check: now() > hold_until",
+          "status": "detected",
+          "detected_by": [
+            "rule"
+          ]
+        }
+      ]
+    }
+  ],
+  "timeline": [
+    {
+      "t_min": 0.0,
+      "kind": "run_started",
+      "label": "Run started from fix a1b2c3d (invoice expiry crash)"
+    },
+    {
+      "t_min": 0.9,
+      "kind": "diagnosis",
+      "label": "Root cause: aware datetime mixed with a naive now()"
+    },
+    {
+      "t_min": 2.1,
+      "kind": "candidates",
+      "label": "5 candidates found across 5 files"
+    },
+    {
+      "t_min": 3.2,
+      "kind": "twin_confirmed",
+      "label": "c01 confirmed with a failing test"
+    },
+    {
+      "t_min": 3.3,
+      "kind": "twin_confirmed",
+      "label": "c02 confirmed with a failing test"
+    },
+    {
+      "t_min": 3.7,
+      "kind": "twin_confirmed",
+      "label": "c03 confirmed with a failing test"
+    },
+    {
+      "t_min": 3.9,
+      "kind": "twin_suspected",
+      "label": "c04 suspected: Celery task not testable in isolation"
+    },
+    {
+      "t_min": 4.0,
+      "kind": "twin_rejected",
+      "label": "c05 rejected: string formatting only"
+    },
+    {
+      "t_min": 5.1,
+      "kind": "twin_fixed",
+      "label": "c01 fixed, test is green"
+    },
+    {
+      "t_min": 5.2,
+      "kind": "twin_fixed",
+      "label": "c02 fixed, test is green"
+    },
+    {
+      "t_min": 5.3,
+      "kind": "twin_fixed",
+      "label": "c03 fixed, test is green"
+    },
+    {
+      "t_min": 6.7,
+      "kind": "vaccine_round",
+      "label": "Round 0: immunity 17% (1/6), escaped: v02, v03, v04, v05, v06"
+    },
+    {
+      "t_min": 8.1,
+      "kind": "vaccine_round",
+      "label": "Round 1: immunity 50% (3/6), escaped: v03, v04, v05"
+    },
+    {
+      "t_min": 9.6,
+      "kind": "vaccine_round",
+      "label": "Round 2: immunity 100% (6/6)"
+    },
+    {
+      "t_min": 10.0,
+      "kind": "antibody_created",
+      "label": "Antibody 001-naive-vs-aware-datetime created"
+    }
+  ],
+  "baseline": {
+    "manual_minutes": 90,
+    "manual_twins": 1
+  },
+  "duration_minutes": 10.0
+}

@@ -1,0 +1,18 @@
+# Example rule, version 1 (sample data). Round 1 of the vaccine showed that it
+# only catches comparisons: subtraction, utcnow() and stored now() escaped.
+rules:
+  - id: antibody-001-naive-now-comparison
+    languages: [python]
+    severity: ERROR
+    message: >-
+      A naive datetime.now() is compared with a value that may be timezone-aware.
+      This crashed invoice expiry (fixed in a1b2c3d, issue #412).
+    pattern-either:
+      - pattern: $X < datetime.now()
+      - pattern: $X <= datetime.now()
+      - pattern: $X > datetime.now()
+      - pattern: $X >= datetime.now()
+      - pattern: datetime.now() < $X
+      - pattern: datetime.now() <= $X
+      - pattern: datetime.now() > $X
+      - pattern: datetime.now() >= $X

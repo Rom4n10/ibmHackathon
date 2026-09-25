@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "antibody/candidates.schema.json",
+  "title": "Twin candidates (phase 2, written by Bob)",
+  "type": "object",
+  "required": ["run_id", "candidates"],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {"type": "string"},
+    "search_notes": {"type": "string", "description": "How the repo was searched and what was ruled out."},
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "file", "line", "snippet", "reasoning", "confidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^c[0-9]{2,}$"},
+          "file": {"type": "string"},
+          "line": {"type": "integer", "minimum": 1},
+          "snippet": {"type": "string"},
+          "reasoning": {"type": "string", "description": "Why this is the same mistake, in one or two sentences."},
+          "confidence": {"enum": ["high", "medium", "low"]}
+        }
+      }
+    }
+  }
+}

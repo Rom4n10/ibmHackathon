@@ -1,0 +1,9 @@
+diff --git a/billing/refunds.py b/billing/refunds.py
+--- a/billing/refunds.py
++++ b/billing/refunds.py
+@@ -40,6 +40,8 @@ def can_refund(payment):
+     if payment.status != "settled":
+         return False
++    if payment.refund_deadline < datetime.now():
++        return False
+     return payment.amount > 0

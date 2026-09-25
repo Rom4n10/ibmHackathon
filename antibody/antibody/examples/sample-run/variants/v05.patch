@@ -1,0 +1,7 @@
+diff --git a/billing/api/webhooks.py b/billing/api/webhooks.py
+--- a/billing/api/webhooks.py
++++ b/billing/api/webhooks.py
+@@ -201,4 +201,5 @@ def event_age(event):
+-    return datetime.now(timezone.utc) - event.received_at
++    checked_at = datetime.now()
++    return checked_at - event.received_at

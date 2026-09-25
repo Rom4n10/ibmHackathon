@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "antibody/verdict.schema.json",
+  "title": "Candidate verdict (phase 2, evidence written by the CLI)",
+  "description": "Only the CLI writes red/green evidence. Bob writes tests and fixes, then asks the CLI to run them.",
+  "type": "object",
+  "required": [
+    "candidate_id",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "pattern": "^c[0-9]{2,}$"
+    },
+    "status": {
+      "enum": [
+        "unproven",
+        "confirmed",
+        "fixed",
+        "suspected",
+        "rejected"
+      ]
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "test": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "file"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "red": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "exit_code",
+        "passed",
+        "duration_s",
+        "output_tail",
+        "recorded_at",
+        "recorded_by"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "exit_code": {
+          "type": "integer"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "duration_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "output_tail": {
+          "type": "string"
+        },
+        "recorded_at": {
+          "type": "string"
+        },
+        "recorded_by": {
+          "enum": [
+            "antibody-cli"
+          ]
+        }
+      }
+    },
+    "green": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "exit_code",
+        "passed",
+        "duration_s",
+        "output_tail",
+        "recorded_at",
+        "recorded_by"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "exit_code": {
+          "type": "integer"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "duration_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "output_tail": {
+          "type": "string"
+        },
+        "recorded_at": {
+          "type": "string"
+        },
+        "recorded_by": {
+          "enum": [
+            "antibody-cli"
+          ]
+        }
+      }
+    },
+    "fix_summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

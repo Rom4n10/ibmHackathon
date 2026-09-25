@@ -1,0 +1,19 @@
+# Example rule, version 2 (sample data). Generalized after round 1: any naive
+# "current time" call is flagged, whatever happens to the value afterwards.
+rules:
+  - id: antibody-001-naive-current-time
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Naive current time. In this codebase it ends up compared with or subtracted
+      from timezone-aware values and raises TypeError. This exact mistake broke
+      invoice expiry (fixed in a1b2c3d, issue #412) and had 3 hidden twins.
+      Use datetime.now(timezone.utc). History:
+      .antibody/antibodies/001-naive-vs-aware-datetime/history.md
+    pattern-either:
+      - pattern: datetime.now()
+      - pattern: datetime.datetime.now()
+      - pattern: datetime.utcnow()
+      - pattern: datetime.datetime.utcnow()
+      - pattern: datetime.today()
+      - pattern: datetime.datetime.today()
