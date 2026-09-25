@@ -24,7 +24,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .prove import run_tests
+from .runners import run_tests, runner_settings
 from .runs import git, load_config, log_event, now_iso, run_dir
 from .schema import read_json, write_json
 
@@ -63,6 +63,41 @@ def _worktree_env(worktree: Path) -> dict:
         paths.append(env["PYTHONPATH"])
     env["PYTHONPATH"] = os.pathsep.join(paths)
     return env
+
+
+def _link_dependencies(repo: Path, worktree: Path, dirs: list[str]) -> list[Path]:
+    """Link untracked dependency folders (node_modules, vendor) into the worktree.
+
+    A fresh worktree only has tracked files, so runners like Vitest or PHPUnit
+    would not find their installed packages. Linking avoids a slow reinstall.
+    """
+    links = []
+    for name in dirs:
+        source, link = repo / name, worktree / name
+        if not source.is_dir() or link.exists():
+            continue
+        try:
+            os.symlink(source, link, target_is_directory=True)
+        except OSError:
+            if os.name != "nt":
+                raise
+            # Symlinks need extra privileges on Windows; junctions do not.
+            subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(source)],
+                           capture_output=True, check=True)
+        links.append(link)
+    return links
+
+
+def _unlink_dependencies(links: list[Path]) -> None:
+    """Remove the links only, never the linked folders' contents."""
+    for link in links:
+        try:
+            os.rmdir(link)  # removes a junction or an empty dir; fails on real content
+        except OSError:
+            try:
+                os.unlink(link)  # a POSIX symlink
+            except OSError:
+                pass
 
 
 def _dirty_outside_antibody(repo: Path) -> tuple[list[str], list[str]]:
@@ -112,12 +147,15 @@ def run_round(repo: Path, run_id: str, round_no: int, rule: str | None = None,
     tmp = Path(tempfile.mkdtemp(prefix="antibody-wt-"))
     worktree = tmp / "wt"
     git(repo, "worktree", "add", "--detach", str(worktree), "HEAD")
+    dependency_dirs = runner_settings(config).get("dependency_dirs", [])
+    links = _link_dependencies(repo, worktree, dependency_dirs)
     test_env = _worktree_env(worktree)
     results = []
     try:
         for variant in variants:
             git(worktree, "checkout", "--", ".", check=False)
-            git(worktree, "clean", "-fdq", check=False)
+            # -e keeps the dependency links out of the clean-up.
+            git(worktree, "clean", "-fdq", *[f"-e{d}" for d in dependency_dirs], check=False)
             patch = (rdir / variant["patch"]).resolve()
             applied = subprocess.run(["git", "apply", str(patch)], cwd=worktree,
                                      capture_output=True, text=True, check=False)
@@ -134,14 +172,14 @@ def run_round(repo: Path, run_id: str, round_no: int, rule: str | None = None,
                     detected_by.append("rule")
 
             evidence = run_tests(worktree, tests or [], config, python, env=test_env)
-            if evidence["exit_code"] == 1:
+            if evidence["outcome"] == "failed":
                 detected_by.append("tests")
                 details.append("tests failed")
-            elif evidence["exit_code"] == 0:
+            elif evidence["outcome"] == "passed":
                 details.append("tests passed")
             else:
                 results.append({"variant_id": variant["id"], "status": "invalid", "detected_by": [],
-                                "detail": f"variant breaks the test run itself (exit {evidence['exit_code']}); "
+                                "detail": f"variant breaks the test run itself ({evidence['detail']}); "
                                           "not a realistic variant"})
                 continue
 
@@ -149,6 +187,7 @@ def run_round(repo: Path, run_id: str, round_no: int, rule: str | None = None,
                             "status": "detected" if detected_by else "escaped",
                             "detected_by": detected_by, "detail": "; ".join(details)})
     finally:
+        _unlink_dependencies(links)
         git(repo, "worktree", "remove", "--force", str(worktree), check=False)
         shutil.rmtree(tmp, ignore_errors=True)
 

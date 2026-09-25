@@ -3,7 +3,7 @@
 Layout inside the target repository:
 
     .antibody/
-      config.json                 budgets and test command
+      config.json                 budgets and test profile (see runners.py)
       runs/<run_id>/
         run.json                  source, timestamps, event log
         diagnosis.json            phase 1 (Bob)
@@ -33,9 +33,10 @@ DEFAULT_CONFIG = {
     "max_candidates": 6,
     "max_variants": 6,
     "max_vaccine_rounds": 3,
-    # "{python}" is replaced by --python, $ANTIBODY_PYTHON or the current
-    # interpreter. Test targets are appended at the end.
-    "test_command": ["{python}", "-m", "pytest", "-q", "-p", "no:cacheprovider"],
+    # How tests are run and read: a profile from runners.PROFILES, detected by
+    # `antibody init`. Any runner key (test_command, test_report, ...) set here
+    # overrides the profile. No profile and no test_command means plain pytest.
+    "profile": None,
     "test_timeout_s": 300,
     "semgrep": "semgrep",
 }
@@ -78,14 +79,20 @@ def ensure_git_repo(repo: Path) -> None:
         raise RuntimeError(f"{repo} is not a git repository")
 
 
-def init_repo(repo: Path) -> Path:
+def init_repo(repo: Path, profile: str | None = None) -> Path:
+    """Create .antibody/. The test profile is `profile`, or detected from the repo."""
+    from .runners import PROFILES, detect_profiles
+
     ensure_git_repo(repo)
+    if profile is not None and profile not in PROFILES:
+        raise ValueError(f"Unknown test profile '{profile}'. Known: {', '.join(PROFILES)}")
     root = antibody_root(repo)
     (root / "runs").mkdir(parents=True, exist_ok=True)
     (root / "antibodies").mkdir(parents=True, exist_ok=True)
     config = root / "config.json"
     if not config.exists():
-        write_json(config, DEFAULT_CONFIG)
+        detected = detect_profiles(repo)
+        write_json(config, {**DEFAULT_CONFIG, "profile": profile or (detected[0] if detected else None)})
     return root
 
 

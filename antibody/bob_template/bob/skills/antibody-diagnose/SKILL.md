@@ -41,6 +41,10 @@ using only `root_cause.pattern`? If not, rewrite it.
   "original_instance": {"file": "path/before/fix.py", "line": 88, "snippet": "the buggy line"}
 }
 ```
+`language` is the project's language as Semgrep names it (`python`, `javascript`,
+`typescript`, `java`, `kotlin`, `go`, `csharp`, `ruby`, `php`, `rust`...): the
+vaccine rule's `languages:` comes from it.
+
 Copy `source` from `.antibody/runs/<run_id>/run.json`. Then run
 `antibody validate RUN/diagnosis.json --schema diagnosis`.
 

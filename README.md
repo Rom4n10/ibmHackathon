@@ -88,8 +88,24 @@ More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 
 ## Quickstart
 
-Requirements: Python 3.10+, git, [IBM Bob IDE](https://bob.ibm.com) 2.0.2 or
-later, and in the target project: `pytest` and `semgrep`.
+Requirements: Python 3.10+ and `semgrep` to run the CLI, git, [IBM Bob IDE](https://bob.ibm.com)
+2.0.2 or later, and the target project's own test runner.
+
+Antibody works with any language Semgrep supports. `antibody init` detects the
+test runner and picks a **profile**; `antibody profiles` lists them:
+
+| Profile | Language | Status |
+|---|---|---|
+| `python-pytest` | Python | verified |
+| `js-vitest`, `js-jest` | JavaScript / TypeScript | verified (Jest needs `jest-junit`) |
+| `java-maven`, `java-gradle` | Java, Kotlin | unverified |
+| `go-gotestsum` | Go | unverified |
+| `dotnet` | C# | unverified |
+| `rust-nextest`, `ruby-rspec`, `php-phpunit` | Rust, Ruby, PHP | unverified |
+
+*Verified* means tested end to end against the real runner. Unverified profiles
+follow each runner's documentation; try one on a real project before relying
+on it, and override any setting in `.antibody/config.json`.
 
 ```bash
 # 1. Install the CLI
@@ -98,7 +114,7 @@ pip install -e ".[tools]"
 
 # 2. Prepare the target repository
 cd /path/to/your-project
-antibody init            # creates .antibody/ and installs the Bob mode in .bob/
+antibody init            # detects the test runner, creates .antibody/, installs the Bob mode in .bob/
 ```
 
 3. Open the project in **Bob IDE**, select the **🧬 Antibody** mode and run:
@@ -128,7 +144,8 @@ to animate a run from its recorded evidence.
 
 | Command | What it does |
 |---|---|
-| `antibody init` | Create `.antibody/` and install the Bob mode into `.bob/` |
+| `antibody init [--profile <name>]` | Create `.antibody/` with the detected test profile and install the Bob mode into `.bob/` |
+| `antibody profiles` | List the test runner profiles and the ones detected in the repo |
 | `antibody new --commit <sha>` | Start a run from a fix commit (or `--document <path>` for a postmortem) |
 | `antibody validate <file> --schema <name>` | Check a JSON file against its contract |
 | `antibody prove <cid> --test <file> --phase red\|green` | Run a twin's test and record evidence |
@@ -140,15 +157,24 @@ to animate a run from its recorded evidence.
 | `antibody status` | Show the state of a run |
 
 Budgets live in `.antibody/config.json` (`max_candidates`, `max_variants`,
-`max_vaccine_rounds`) so Bob usage stays predictable. The test command is
-configurable for projects that run tests through `uv`, `poetry` or `tox`.
+`max_vaccine_rounds`) so Bob usage stays predictable. The test `profile` lives
+there too; any of its keys (`test_command`, `test_report`, ...) can be overridden,
+for example to run tests through `uv`, `pnpm` or a Gradle wrapper.
+
+### How a test proves a bug, in any language
+
+The CLI does not trust exit codes: Jest, Maven or dotnet exit 1 both when a
+test fails and when the code does not compile. Each profile makes the runner
+write a **JUnit XML report**, and the CLI reads it. A twin is confirmed only
+if its test is in the report and failed. No report, a test that is missing
+from it, or a test file that failed to load is a broken test, never a proof.
 
 ## What stays in your repo
 
 ```
 .bob/                                 the Antibody mode, rules, skills, /antibody command
 .antibody/
-  config.json                         budgets and test command
+  config.json                         budgets and test profile
   runs/<run_id>/                      every step of every run, with evidence
   antibodies/001-naive-vs-aware-datetime/
     rule.yml                          the hardened Semgrep rule, message = memory
@@ -188,8 +214,9 @@ bob_sessions/        IBM Bob task session summary screenshots (hackathon evidenc
 
 - Works best for mistakes that a unit test can demonstrate (logic errors, API
   misuse). Concurrency and infrastructure bugs usually end up as *suspected*.
-- The first version targets Python projects with pytest and Semgrep. The test
-  command is configurable; other languages need their own skills tuning.
+- Python and JavaScript/TypeScript profiles are verified end to end. The other
+  profiles are written from each runner's documentation and still need a run
+  on a real project.
 - Antibody proposes; humans approve. It never merges or pushes.
 
 ## Data and privacy

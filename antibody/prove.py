@@ -1,76 +1,18 @@
 """Phase 2 evidence: run a candidate's test and record red/green proof.
 
-A twin is only "confirmed" when its test fails with a real assertion failure
-(pytest exit code 1). Collection errors, import errors or syntax errors
-(exit codes 2-5) prove nothing, so they never confirm a twin.
+A twin is only "confirmed" when its test ran and failed. A test that never ran
+(compile, import or syntax errors, a missing runner, a test the report does not
+contain) proves nothing, so it never confirms a twin. How "ran and failed" is
+read for each language lives in runners.py.
 """
 
 from __future__ import annotations
 
-import os
-import subprocess
-import sys
-import time
 from pathlib import Path
 
-from .runs import load_config, log_event, now_iso, run_dir
+from .runners import run_tests, runner_settings
+from .runs import load_config, log_event, run_dir
 from .schema import read_json, write_json
-
-PYTEST_EXIT_MEANING = {
-    0: "all tests passed",
-    1: "tests ran and at least one failed",
-    2: "execution interrupted (often an import or syntax error)",
-    3: "internal pytest error",
-    4: "pytest usage error (bad path or option)",
-    5: "no tests were collected",
-}
-
-
-def build_test_command(config: dict, targets: list[str], python: str | None = None) -> list[str]:
-    interpreter = python or os.environ.get("ANTIBODY_PYTHON") or sys.executable
-    return [part.replace("{python}", interpreter) for part in config["test_command"]] + list(targets)
-
-
-def _runner_missing(command: list[str], output: str) -> bool:
-    """True when `python -m <module>` failed because <module> is not installed."""
-    if "-m" not in command[:-1]:
-        return False
-    module = command[command.index("-m") + 1]
-    return f"No module named {module}" in output
-
-
-def run_tests(cwd: Path, targets: list[str], config: dict, python: str | None = None,
-              env: dict | None = None) -> dict:
-    """Run the configured test command and return a CLI-recorded evidence dict."""
-    command = build_test_command(config, targets, python)
-    started = time.monotonic()
-    try:
-        result = subprocess.run(
-            command,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=config.get("test_timeout_s", 300),
-            check=False,
-            env=env,
-        )
-        exit_code, output = result.returncode, (result.stdout + result.stderr)
-    except subprocess.TimeoutExpired as exc:
-        exit_code = 124
-        output = f"Timed out after {exc.timeout}s\n{exc.stdout or ''}{exc.stderr or ''}"
-    if exit_code == 1 and _runner_missing(command, output):
-        # `python -m pytest` exits 1 when pytest is not installed, which would
-        # look like a real test failure. Report it as a usage error instead.
-        exit_code = 4
-        output += "\nAntibody: the test runner is not installed for this interpreter."
-    return {
-        "exit_code": exit_code,
-        "passed": exit_code == 0,
-        "duration_s": round(time.monotonic() - started, 2),
-        "output_tail": output[-2000:],
-        "recorded_at": now_iso(),
-        "recorded_by": "antibody-cli",
-    }
 
 
 def _verdict_path(repo: Path, run_id: str, candidate_id: str) -> Path:
@@ -102,32 +44,35 @@ def prove(repo: Path, run_id: str, candidate_id: str, test_file: str, phase: str
     config = load_config(repo)
     verdict = _load_verdict(repo, run_id, candidate_id)
     verdict["test"] = {"file": test_file, "node_id": node_id}
-    target = f"{test_file}::{node_id}" if node_id else test_file
-    evidence = run_tests(Path(repo), [target], config, python)
-    meaning = PYTEST_EXIT_MEANING.get(evidence["exit_code"], "unexpected exit code")
+    # Report-based profiles run the whole file and pick the node from the report;
+    # pytest's exit codes can only speak for the node if it is the only target.
+    exit_code_only = not runner_settings(config).get("test_report")
+    target = f"{test_file}::{node_id}" if node_id and exit_code_only else test_file
+    evidence = run_tests(Path(repo), [target], config, python, node_id=node_id)
+    outcome, detail = evidence["outcome"], evidence["detail"]
 
     if phase == "red":
         verdict["red"] = evidence
-        if evidence["exit_code"] == 1:
+        if outcome == "failed":
             verdict["status"], verdict["reason"] = "confirmed", "Test fails on current code: bug demonstrated."
             log_event(repo, run_id, "twin_confirmed", f"{candidate_id} confirmed with a failing test")
-        elif evidence["exit_code"] == 0:
+        elif outcome == "passed":
             verdict["status"], verdict["reason"] = "unproven", "Test passes on current code: bug not demonstrated."
         else:
             verdict["status"] = "unproven"
-            verdict["reason"] = f"Test is broken, not a proof (exit {evidence['exit_code']}: {meaning})."
+            verdict["reason"] = f"Test is broken, not a proof ({detail})."
     elif phase == "green":
         if verdict["status"] not in ("confirmed", "fixed"):
             raise ValueError(f"{candidate_id} must be confirmed (red) before recording green evidence")
         verdict["green"] = evidence
         if fix_summary:
             verdict["fix_summary"] = fix_summary
-        if evidence["exit_code"] == 0:
+        if outcome == "passed":
             verdict["status"], verdict["reason"] = "fixed", "Test passes after the fix."
             log_event(repo, run_id, "twin_fixed", f"{candidate_id} fixed, test is green")
         else:
             verdict["status"] = "confirmed"
-            verdict["reason"] = f"Fix not verified yet (exit {evidence['exit_code']}: {meaning})."
+            verdict["reason"] = f"Fix not verified yet ({detail})."
     else:
         raise ValueError("phase must be 'red' or 'green'")
 
