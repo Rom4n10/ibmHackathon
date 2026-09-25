@@ -116,7 +116,8 @@ on every merged PR labeled `bug`). That is out of scope for the hackathon MVP.
 - **Other languages:** a new entry in `PROFILES` (`antibody/runners.py`) with the
   runner's command and where it writes its JUnit report. Any key can also be
   overridden per project in `.antibody/config.json`. Mark it `verified` only
-  after running it end to end against the real runner.
+  once it has a fixture in `tests/e2e/fixtures/`, a spec in `tests/e2e/run_e2e.py`
+  and a green job in the `e2e` workflow.
 - **CI guard:** `examples/ci/antibody-guard.yml` runs every antibody rule on
   each pull request.
 - **Backtest:** run Antibody on an old fix and check whether it would have found

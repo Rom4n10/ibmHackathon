@@ -60,9 +60,10 @@ PYTEST_EXIT_MEANING = {
     5: "no tests were collected",
 }
 
-# "verified": exercised end to end against the real runner by the Antibody team.
-# Unverified profiles follow each runner's documentation; check them on a real
-# project before relying on them, and override any key in .antibody/config.json.
+# "verified": the profile's job in the e2e workflow (.github/workflows/e2e.yml,
+# tests/e2e/) runs a whole Antibody run against the real runner and is green.
+# A new profile stays unverified until it has a fixture there. Any key can be
+# overridden per project in .antibody/config.json.
 PROFILES: dict[str, dict] = {
     "python-pytest": {
         "language": "python", "verified": True,
@@ -88,28 +89,28 @@ PROFILES: dict[str, dict] = {
         "dependency_dirs": ["node_modules"],
     },
     "java-maven": {
-        "language": "java", "verified": False,
+        "language": "java", "verified": True,
         "test_command": ["mvn", "-B", "-q", "test", "-Dtest={targets}",
                          "-Dsurefire.failIfNoSpecifiedTests=false"],
         "test_report": "**/target/surefire-reports/TEST-*.xml",
         "target_style": "stem",
     },
     "java-gradle": {
-        "language": "java", "verified": False,
+        "language": "java", "verified": True,
         # cleanTest: an up-to-date test task would not run nor write a new report.
         "test_command": ["{gradle}", "cleanTest", "test", "{targets}"],
         "test_report": "**/build/test-results/test/TEST-*.xml",
         "target_style": "stem", "target_flag": "--tests",
     },
     "go-gotestsum": {
-        "language": "go", "verified": False,
+        "language": "go", "verified": True,
         "note": "needs gotestsum (go install gotest.tools/gotestsum@latest)",
         "test_command": ["gotestsum", "--junitfile", "{report}", "--", "{targets}"],
         "test_report": "{report}",
         "target_style": "package", "default_targets": ["./..."],
     },
     "dotnet": {
-        "language": "csharp", "verified": False,
+        "language": "csharp", "verified": True,
         "note": "needs the JunitXml.TestLogger package in the test project",
         "test_command": ["dotnet", "test", "--logger", "junit;LogFilePath={report}", "{targets}"],
         "test_report": "{report}",
@@ -117,7 +118,7 @@ PROFILES: dict[str, dict] = {
         "targets_option": "--filter", "targets_separator": "|",
     },
     "rust-nextest": {
-        "language": "rust", "verified": False,
+        "language": "rust", "verified": True,
         "note": "needs cargo-nextest and [profile.antibody.junit] path = \"junit.xml\" in .config/nextest.toml; "
                 "twin tests go in tests/<name>.rs",
         "test_command": ["cargo", "nextest", "run", "--profile", "antibody", "{targets}"],
@@ -125,14 +126,14 @@ PROFILES: dict[str, dict] = {
         "target_style": "stem", "target_flag": "--test",
     },
     "ruby-rspec": {
-        "language": "ruby", "verified": False,
+        "language": "ruby", "verified": True,
         "note": "needs the rspec_junit_formatter gem",
         "test_command": ["bundle", "exec", "rspec", "--format", "progress", "--format", "RspecJunitFormatter",
                          "--out", "{report}", "{targets}"],
         "test_report": "{report}",
     },
     "php-phpunit": {
-        "language": "php", "verified": False,
+        "language": "php", "verified": True,
         "test_command": ["vendor/bin/phpunit", "--log-junit", "{report}", "{targets}"],
         "test_report": "{report}",
         "dependency_dirs": ["vendor"],

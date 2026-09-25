@@ -94,18 +94,21 @@ Requirements: Python 3.10+ and `semgrep` to run the CLI, git, [IBM Bob IDE](http
 Antibody works with any language Semgrep supports. `antibody init` detects the
 test runner and picks a **profile**; `antibody profiles` lists them:
 
-| Profile | Language | Status |
+| Profile | Language | Needs |
 |---|---|---|
-| `python-pytest` | Python | verified |
-| `js-vitest`, `js-jest` | JavaScript / TypeScript | verified (Jest needs `jest-junit`) |
-| `java-maven`, `java-gradle` | Java, Kotlin | unverified |
-| `go-gotestsum` | Go | unverified |
-| `dotnet` | C# | unverified |
-| `rust-nextest`, `ruby-rspec`, `php-phpunit` | Rust, Ruby, PHP | unverified |
+| `python-pytest` | Python | pytest |
+| `js-vitest`, `js-jest` | JavaScript / TypeScript | Vitest, or Jest with `jest-junit` |
+| `java-maven`, `java-gradle` | Java, Kotlin | Maven or Gradle with JUnit |
+| `go-gotestsum` | Go | `gotestsum` |
+| `dotnet` | C# | the `JunitXml.TestLogger` package |
+| `rust-nextest` | Rust | `cargo-nextest` and a `junit` profile in `.config/nextest.toml` |
+| `ruby-rspec` | Ruby | `rspec_junit_formatter` |
+| `php-phpunit` | PHP | PHPUnit |
 
-*Verified* means tested end to end against the real runner. Unverified profiles
-follow each runner's documentation; try one on a real project before relying
-on it, and override any setting in `.antibody/config.json`.
+Every profile is **verified** by the [`e2e` workflow](.github/workflows/e2e.yml):
+on each push it runs a whole Antibody run against the real runner, including a
+test file that does not compile, which must never confirm a twin. Any setting
+can be overridden in `.antibody/config.json`.
 
 ```bash
 # 1. Install the CLI
@@ -214,9 +217,9 @@ bob_sessions/        IBM Bob task session summary screenshots (hackathon evidenc
 
 - Works best for mistakes that a unit test can demonstrate (logic errors, API
   misuse). Concurrency and infrastructure bugs usually end up as *suspected*.
-- Python and JavaScript/TypeScript profiles are verified end to end. The other
-  profiles are written from each runner's documentation and still need a run
-  on a real project.
+- Profiles are verified on small fixture projects (`tests/e2e/fixtures/`). Large
+  builds work the same way but are slower: the vaccine rebuilds the project in
+  its worktree for every variant.
 - Antibody proposes; humans approve. It never merges or pushes.
 
 ## Data and privacy
