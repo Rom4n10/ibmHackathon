@@ -16,7 +16,7 @@
 - Python 3.10+ only
 - `python -m unittest discover -s tests` must pass (this is the CI command)
 - Never write `recorded_by` = anything except `"antibody-cli"` in evidence files
-- Test command: `python -m unittest discover -s tests` from the repo root (`antibody/antibody/`)
+- Test command: `python -m unittest discover -s tests` from the repo root
 - Sample-run fixtures live at: `antibody/examples/sample-run/` (relative to the package root)
 
 ---
@@ -98,7 +98,7 @@ demo-target/       ← el repo donde corre la demo (un proyecto Python aparte)
 ### Cómo correr los tests del repo de Antibody mismo
 
 ```bash
-cd antibody/antibody          # ← la carpeta con pyproject.toml
+cd ibmHackathon              # ← la raíz del repo, con pyproject.toml
 pip install -e ".[tools]"
 python -m unittest discover -s tests
 ```
@@ -196,7 +196,7 @@ def make_temp_repo(sample_run: bool = False) -> Path:
 - [ ] **Step 3: Verificar que el helper importa sin errores**
 
 ```bash
-cd antibody/antibody
+cd ibmHackathon
 python -c "from tests.fixtures import make_temp_repo, SAMPLE_RUN_ID; print('OK')"
 ```
 
@@ -343,7 +343,7 @@ class TestReadWriteJson(unittest.TestCase):
 - [ ] **Step 2: Correr los tests**
 
 ```bash
-cd antibody/antibody
+cd ibmHackathon
 python -m unittest tests.test_schema -v
 ```
 
@@ -496,7 +496,7 @@ class TestLogEventAndBaseline(unittest.TestCase):
 - [ ] **Step 2: Correr los tests**
 
 ```bash
-cd antibody/antibody
+cd ibmHackathon
 python -m unittest tests.test_runs -v
 ```
 
@@ -668,7 +668,7 @@ class TestMark(unittest.TestCase):
 - [ ] **Step 2: Correr los tests**
 
 ```bash
-cd antibody/antibody
+cd ibmHackathon
 python -m unittest tests.test_prove -v
 ```
 
@@ -772,7 +772,7 @@ class TestBuildScoreboard(unittest.TestCase):
 - [ ] **Step 2: Correr los tests**
 
 ```bash
-cd antibody/antibody
+cd ibmHackathon
 python -m unittest tests.test_memory -v
 ```
 
@@ -925,7 +925,7 @@ class TestCliMark(unittest.TestCase):
 - [ ] **Step 2: Correr los tests**
 
 ```bash
-cd antibody/antibody
+cd ibmHackathon
 python -m unittest tests.test_cli -v
 ```
 
@@ -934,7 +934,7 @@ Esperado: todos pasan (8 tests).
 - [ ] **Step 3: Correr el suite completo**
 
 ```bash
-cd antibody/antibody
+cd ibmHackathon
 python -m unittest discover -s tests -v
 ```
 
@@ -987,14 +987,14 @@ python -c "import <modulo>; <llamada que deberia fallar>"
 
 ```bash
 # En la máquina de cada integrante:
-cd antibody/antibody
+cd ibmHackathon
 pip install -e ".[tools]"
 python -m unittest discover -s tests        # debe quedar verde
 
 # En el repo demo:
 cd /ruta/al/demo-target
 pip install -e ".[test]"                    # instalar el proyecto demo
-pip install -e /ruta/a/antibody/antibody[tools]
+pip install -e /ruta/a/ibmHackathon[tools]
 antibody init                               # crea .antibody/ y .bob/
 ```
 
@@ -1065,10 +1065,10 @@ antibody finalize \
 ```bash
 antibody scoreboard --repo-label owner/project
 # Copia el archivo generado al repo de Antibody para el video:
-cp .antibody/runs/<run_id>/scoreboard.json /ruta/a/antibody/antibody/examples/demo-run/
+cp .antibody/runs/<run_id>/scoreboard.json /ruta/a/ibmHackathon/examples/demo-run/
 
 # Para verlo en el browser:
-cd /ruta/a/antibody/antibody
+cd /ruta/a/ibmHackathon
 python -m http.server 8000
 # Abrir: http://localhost:8000/ui/scoreboard.html
 # Cargar el archivo: examples/demo-run/scoreboard.json
