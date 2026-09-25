@@ -66,9 +66,20 @@ def _worktree_env(worktree: Path) -> dict:
 
 
 def _dirty_outside_antibody(repo: Path) -> tuple[list[str], list[str]]:
-    """Return (modified tracked files, untracked files), ignoring .antibody/."""
+    """Return (modified tracked files, untracked files), ignoring .antibody/.
+
+    The :(exclude) magic pathspec is not supported by all Git builds on Windows
+    (e.g. repos inside paths with spaces such as OneDrive/Escritorio).
+    We fall back to a plain 'git status --porcelain' and filter in Python.
+    """
     status = git(repo, "status", "--porcelain", "--", ".", ":(exclude).antibody", check=False)
-    lines = [line for line in status.splitlines() if line.strip()]
+    if not status:
+        # Fallback: :(exclude) may not be supported; filter .antibody/ manually.
+        status = git(repo, "status", "--porcelain", check=False)
+    lines = [
+        line for line in status.splitlines()
+        if line.strip() and ".antibody" not in line
+    ]
     untracked = [line[3:] for line in lines if line.startswith("??")]
     modified = [line for line in lines if not line.startswith("??")]
     return modified, untracked

@@ -19,6 +19,7 @@ Layout inside the target repository:
 
 from __future__ import annotations
 
+import secrets
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -97,7 +98,7 @@ def new_run(repo: Path, source_type: str, ref: str, issue: str | None = None) ->
         fix_commit = git(repo, "rev-parse", ref)
         parent_commit = git(repo, "rev-parse", f"{fix_commit}^", check=False) or None
 
-    run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
+    run_id = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(3)
     path = antibody_root(repo) / "runs" / run_id
     (path / "verdicts").mkdir(parents=True)
     (path / "variants").mkdir()
