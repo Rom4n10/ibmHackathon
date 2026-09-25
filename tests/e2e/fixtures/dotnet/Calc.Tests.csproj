@@ -14,4 +14,8 @@
     <PackageReference Include="JunitXml.TestLogger" Version="4.*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
 </Project>
