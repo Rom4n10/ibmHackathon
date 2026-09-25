@@ -18,27 +18,8 @@ from antibody.prove import mark, prove
 from antibody.runs import init_repo, new_run, run_dir
 from antibody.schema import ContractError, read_json, validate, write_json
 from antibody.vaccine import run_round
+from tests.fixtures import FAKE_RUNNER
 
-FAKE_RUNNER = textwrap.dedent('''
-    import importlib.util, sys, traceback
-    files = [a.split("::")[0] for a in sys.argv[1:] if not a.startswith("-")] or ["tests/test_clock.py"]
-    ran = failed = 0
-    for path in files:
-        spec = importlib.util.spec_from_file_location("t", path)
-        mod = importlib.util.module_from_spec(spec)
-        try:
-            spec.loader.exec_module(mod)
-        except Exception:
-            traceback.print_exc(); sys.exit(2)
-        for name in dir(mod):
-            if name.startswith("test_"):
-                ran += 1
-                try:
-                    getattr(mod, name)()
-                except Exception:
-                    failed += 1; traceback.print_exc()
-    sys.exit(5 if ran == 0 else (1 if failed else 0))
-''')
 
 BUGGY = textwrap.dedent('''
     from datetime import datetime, timezone

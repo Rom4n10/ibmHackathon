@@ -9,7 +9,7 @@ from pathlib import Path
 from antibody.prove import mark, prove
 from antibody.runs import init_repo, new_run, run_dir
 from antibody.schema import read_json
-from tests.fixtures import make_temp_repo
+from tests.fixtures import make_temp_repo, use_fake_runner
 
 
 def _write_candidates(repo: Path, run_id: str, ids: list[str]) -> None:
@@ -49,6 +49,7 @@ class TestProveRed(unittest.TestCase):
     def setUp(self):
         self._repo = make_temp_repo()
         init_repo(self._repo)
+        use_fake_runner(self._repo)
         self._run_id = new_run(self._repo, "postmortem", "x.md")
         _write_candidates(self._repo, self._run_id, ["c01", "c02"])
 
@@ -76,6 +77,18 @@ class TestProveRed(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             prove(self._repo, self._run_id, "c01", "tests/does_not_exist.py", "red")
 
+    def test_red_missing_runner_does_not_confirm(self):
+        # `python -m <module>` exits 1 when the module is missing; that must not
+        # be mistaken for a failing test.
+        config_path = self._repo / ".antibody" / "config.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["test_command"] = ["{python}", "-m", "antibody_no_such_runner"]
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        test_file = _write_failing_test(self._repo, "tests/test_twin_c01.py")
+        verdict = prove(self._repo, self._run_id, "c01", test_file, "red")
+        self.assertEqual(verdict["status"], "unproven")
+        self.assertEqual(verdict["red"]["exit_code"], 4)
+
     def test_verdict_file_is_written(self):
         test_file = _write_failing_test(self._repo, "tests/test_twin_c01.py")
         prove(self._repo, self._run_id, "c01", test_file, "red")
@@ -90,6 +103,7 @@ class TestProveGreen(unittest.TestCase):
     def setUp(self):
         self._repo = make_temp_repo()
         init_repo(self._repo)
+        use_fake_runner(self._repo)
         self._run_id = new_run(self._repo, "postmortem", "x.md")
         _write_candidates(self._repo, self._run_id, ["c01"])
         # First confirm the twin in red

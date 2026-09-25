@@ -31,6 +31,14 @@ def build_test_command(config: dict, targets: list[str], python: str | None = No
     return [part.replace("{python}", interpreter) for part in config["test_command"]] + list(targets)
 
 
+def _runner_missing(command: list[str], output: str) -> bool:
+    """True when `python -m <module>` failed because <module> is not installed."""
+    if "-m" not in command[:-1]:
+        return False
+    module = command[command.index("-m") + 1]
+    return f"No module named {module}" in output
+
+
 def run_tests(cwd: Path, targets: list[str], config: dict, python: str | None = None,
               env: dict | None = None) -> dict:
     """Run the configured test command and return a CLI-recorded evidence dict."""
@@ -50,6 +58,11 @@ def run_tests(cwd: Path, targets: list[str], config: dict, python: str | None = 
     except subprocess.TimeoutExpired as exc:
         exit_code = 124
         output = f"Timed out after {exc.timeout}s\n{exc.stdout or ''}{exc.stderr or ''}"
+    if exit_code == 1 and _runner_missing(command, output):
+        # `python -m pytest` exits 1 when pytest is not installed, which would
+        # look like a real test failure. Report it as a usage error instead.
+        exit_code = 4
+        output += "\nAntibody: the test runner is not installed for this interpreter."
     return {
         "exit_code": exit_code,
         "passed": exit_code == 0,
