@@ -157,7 +157,8 @@ def run_round(repo: Path, run_id: str, round_no: int, rule: str | None = None,
     record = {
         "run_id": run_id,
         "round": round_no,
-        "rule_file": str(rule_path.relative_to(repo)) if rule_path and rule_path.is_relative_to(repo) else rule,
+        "rule_file": (rule_path.relative_to(repo).as_posix() if rule_path.is_relative_to(repo)
+                      else Path(rule).as_posix()) if rule_path else None,
         "rule_sha256": _sha256(rule_path) if rule_path else None,
         "tests_target": tests or [],
         "results": results,

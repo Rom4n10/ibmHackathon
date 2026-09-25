@@ -4,7 +4,9 @@ from __future__ import annotations
 import json
 import shutil
 import unittest
+from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 from antibody.memory import build_scoreboard, finalize
 from antibody.runs import run_dir
@@ -62,6 +64,29 @@ class TestFinalize(unittest.TestCase):
         folder = finalize(self._repo, SAMPLE_RUN_ID, "my-test-slug",
                           str(self._rule_path.relative_to(self._repo)))
         self.assertIn("my-test-slug", folder.name)
+
+    def test_rule_file_uses_forward_slashes(self):
+        # The manifest is committed and read on every OS, so no backslashes.
+        folder = finalize(self._repo, SAMPLE_RUN_ID, "naive-vs-aware-datetime",
+                          str(self._rule_path.relative_to(self._repo)))
+        manifest = read_json(folder / "manifest.json", "manifest")
+        self.assertEqual(manifest["rule_file"],
+                         ".antibody/antibodies/001-naive-vs-aware-datetime/rule.yml")
+        self.assertIn(f"`{manifest['rule_file']}`", (folder / "history.md").read_text(encoding="utf-8"))
+
+    def _finalize_output(self, rule_text: str) -> str:
+        self._rule_path.write_text(rule_text, encoding="utf-8")
+        with patch("sys.stdout", new_callable=StringIO) as out:
+            finalize(self._repo, SAMPLE_RUN_ID, "memory-check", "rule.v2.yml")
+        return out.getvalue()
+
+    def test_rule_citing_only_the_issue_does_not_warn(self):
+        output = self._finalize_output("rules: []  # broke checkout, issue #412\n")
+        self.assertNotIn("warning", output)
+
+    def test_rule_citing_nothing_warns(self):
+        output = self._finalize_output("rules: []  # no history here\n")
+        self.assertIn("does not reference the original fix", output)
 
 
 class TestBuildScoreboard(unittest.TestCase):

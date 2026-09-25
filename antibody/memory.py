@@ -98,8 +98,11 @@ def finalize(repo: Path, run_id: str, slug: str, rule: str, summary: str | None 
 
     source = diagnosis["source"]
     rule_text = rule_path.read_text(encoding="utf-8")
-    anchors = [a for a in (source.get("fix_commit"), source.get("ref")) if a]
-    if not any(a[:7] in rule_text for a in anchors):
+    # The message may point to the fix commit (short sha) or to the linked issue.
+    anchors = [a[:7] for a in (source.get("fix_commit"), source.get("ref")) if a]
+    if source.get("issue"):
+        anchors.append(source["issue"])
+    if not any(a in rule_text for a in anchors):
         print("[antibody] warning: the rule message does not reference the original fix or incident. "
               "Memory works best when the message says what happened last time.")
 
@@ -118,7 +121,7 @@ def finalize(repo: Path, run_id: str, slug: str, rule: str, summary: str | None 
         "root_cause": {"title": diagnosis["root_cause"]["title"],
                        "pattern": diagnosis["root_cause"]["pattern"]},
         "twins": _twins(repo, run_id),
-        "rule_file": str((folder / "rule.yml").relative_to(repo)),
+        "rule_file": (folder / "rule.yml").relative_to(repo).as_posix(),
         "immunity": [{"round": r["round"], "score": r["score"], "valid": r["valid"],
                       "detected": r["detected"]} for r in load_rounds(repo, run_id)],
         "memory": {"summary": summary or diagnosis["root_cause"]["why_it_breaks"],
