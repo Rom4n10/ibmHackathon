@@ -1,0 +1,38 @@
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test/tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Antibody runtime state (local runs, not for VCS)
+.antibody/
+
+# Superpowers workspace (git-ignored scratch)
+.superpowers/sdd/
+
+# Demo repos cloned locally
+demo-target/
