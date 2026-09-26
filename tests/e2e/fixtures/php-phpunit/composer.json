@@ -1,0 +1,4 @@
+{
+    "name": "antibody/e2e-phpunit",
+    "require-dev": { "phpunit/phpunit": "^11.5" }
+}

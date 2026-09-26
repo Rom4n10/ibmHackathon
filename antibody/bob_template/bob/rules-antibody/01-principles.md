@@ -20,7 +20,8 @@
    antibody. Never merge, never push, never force anything.
 
 5. **Stay in scope.** Only touch: the twin's lines and their direct callers,
-   new tests under `tests/antibody/`, and files under `.antibody/`.
+   new twin tests (named after the candidate, see antibody-prove), and files
+   under `.antibody/`.
 
 6. **No personal information.** Do not write author names, emails or any
    personal data from git history into any Antibody file, report or message.

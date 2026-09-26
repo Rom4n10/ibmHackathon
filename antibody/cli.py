@@ -13,7 +13,8 @@ from pathlib import Path
 from . import __version__
 from .memory import build_scoreboard, finalize
 from .prove import mark, prove
-from .runs import init_repo, latest_run, new_run, run_dir, set_baseline
+from .runners import PROFILES, detect_profiles
+from .runs import init_repo, latest_run, load_config, new_run, run_dir, set_baseline
 from .schema import SCHEMA_NAMES, ContractError, read_json
 from .vaccine import load_rounds, run_round
 
@@ -45,13 +46,39 @@ def _install_bob_mode(repo: Path, force: bool) -> list[str]:
     return copied
 
 
+def _describe_profile(name: str) -> str:
+    profile = PROFILES[name]
+    status = "verified" if profile["verified"] else "unverified"
+    note = f", {profile['note']}" if profile.get("note") else ""
+    return f"{name} ({profile['language']}, {status}{note})"
+
+
 def cmd_init(args) -> int:
     repo = _repo(args)
-    root = init_repo(repo)
+    root = init_repo(repo, args.profile)
     print(f"Initialized {root.relative_to(repo)}/")
+    profile = load_config(repo).get("profile")
+    if profile:
+        print(f"Test profile: {_describe_profile(profile)}")
+        others = [p for p in detect_profiles(repo) if p != profile]
+        if others:
+            print(f"  also detected: {', '.join(others)} (switch with \"profile\" in .antibody/config.json)")
+    else:
+        print("Test profile: none detected, using plain pytest. Set \"profile\" in .antibody/config.json "
+              "(see: antibody profiles)")
     if not args.no_bob:
         copied = _install_bob_mode(repo, args.force)
         print(f"Installed the Antibody Bob mode ({len(copied)} files in .bob/). Reload Bob IDE to see it.")
+    return 0
+
+
+def cmd_profiles(args) -> int:
+    detected = detect_profiles(_repo(args))
+    for name in PROFILES:
+        mark = "*" if name in detected else " "
+        print(f"{mark} {_describe_profile(name)}")
+    print("* = detected in this repository. Unverified profiles follow the runner's docs; "
+          "check them on a real project first.")
     return 0
 
 
@@ -158,7 +185,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("init", help="Create .antibody/ and install the Bob mode into .bob/")
     p.add_argument("--no-bob", action="store_true", help="Do not install the Bob mode files")
     p.add_argument("--force", action="store_true", help="Overwrite existing .bob files")
+    p.add_argument("--profile", choices=list(PROFILES), help="Test profile (default: detected from the repo)")
     p.set_defaults(func=cmd_init)
+
+    p = sub.add_parser("profiles", help="List the test runner profiles and the ones detected here")
+    p.set_defaults(func=cmd_profiles)
 
     p = sub.add_parser("new", help="Start a run from a fix commit or a document")
     group = p.add_mutually_exclusive_group(required=True)
@@ -178,7 +209,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = with_run(sub.add_parser("prove", help="Run a candidate's test and record red/green evidence"))
     p.add_argument("candidate", help="Candidate id, e.g. c01")
     p.add_argument("--test", required=True, help="Repo-relative test file")
-    p.add_argument("--node", help="Test node inside the file, e.g. test_name")
+    p.add_argument("--node", help="Test name inside the file (matched against the test report)")
     p.add_argument("--phase", choices=["red", "green"], required=True)
     p.add_argument("--fix-summary", help="One line describing the fix (green phase)")
     p.add_argument("--python", help="Interpreter of the target project (default: $ANTIBODY_PYTHON)")

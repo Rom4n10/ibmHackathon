@@ -49,6 +49,8 @@ the file and `git reset <file>`.
   not a problem to fix.
 
 ## Writing the rule
+- `languages:` is `root_cause.language` (plus `typescript` next to `javascript`
+  when the project mixes both).
 - Match the mistake, not the variant: generalize from the escapes
   (`pattern-either`, metavariables) instead of adding one pattern per escape.
 - Check it does not over-match: `semgrep scan --config RUN/rule.vN.yml --metrics=off`

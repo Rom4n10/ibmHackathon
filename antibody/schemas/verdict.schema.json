@@ -71,6 +71,43 @@
         "passed": {
           "type": "boolean"
         },
+        "outcome": {
+          "enum": [
+            "failed",
+            "passed",
+            "broken"
+          ],
+          "description": "failed = the test ran and failed; broken = it never really ran (not a proof)."
+        },
+        "tests_run": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Matching test cases that ran, from the JUnit report (null in exit_code mode)."
+        },
+        "tests_failed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "evidence_from": {
+          "enum": [
+            "junit_report",
+            "exit_code"
+          ],
+          "description": "How the outcome was read: the runner's JUnit XML report, or pytest-style exit codes."
+        },
+        "detail": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Why the CLI reached this outcome."
+        },
         "duration_s": {
           "type": "number",
           "minimum": 0
@@ -108,6 +145,43 @@
         },
         "passed": {
           "type": "boolean"
+        },
+        "outcome": {
+          "enum": [
+            "failed",
+            "passed",
+            "broken"
+          ],
+          "description": "failed = the test ran and failed; broken = it never really ran (not a proof)."
+        },
+        "tests_run": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Matching test cases that ran, from the JUnit report (null in exit_code mode)."
+        },
+        "tests_failed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "evidence_from": {
+          "enum": [
+            "junit_report",
+            "exit_code"
+          ],
+          "description": "How the outcome was read: the runner's JUnit XML report, or pytest-style exit codes."
+        },
+        "detail": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Why the CLI reached this outcome."
         },
         "duration_s": {
           "type": "number",

@@ -17,7 +17,7 @@ Work in the target repository root. `RUN` means the folder printed by
 - Search the whole repository by meaning, not by text. Write `RUN/candidates.json`
   with at most `max_candidates` entries, best first.
 - For each candidate, spawn one subagent (in parallel when possible) that:
-  writes `tests/antibody/test_twin_<cid>_<topic>.py`, runs
+  writes one test in the project's language (see antibody-prove), runs
   `antibody prove <cid> --test <file> --phase red`, and iterates until the
   test fails for the right reason or gives up and runs
   `antibody mark <cid> --suspected --reason "..."`.

@@ -35,24 +35,29 @@ antibody validate <file> --schema <name>
 ```mermaid
 stateDiagram-v2
   [*] --> unproven: listed in candidates.json
-  unproven --> confirmed: prove --phase red, exit 1
-  unproven --> unproven: exit 0 (not shown) or exit 2-5 (broken test)
+  unproven --> confirmed: prove --phase red, outcome failed
+  unproven --> unproven: outcome passed (not shown) or broken (test never ran)
   unproven --> suspected: mark --suspected
   unproven --> rejected: mark --rejected
-  confirmed --> fixed: prove --phase green, exit 0
+  confirmed --> fixed: prove --phase green, outcome passed
   confirmed --> confirmed: green run still failing
 ```
 
 Only `confirmed` and `fixed` count as twins anywhere (reports, manifest,
 scoreboard headline).
 
+Red and green evidence record the `outcome` (`failed`, `passed` or `broken`),
+where it came from (`evidence_from`: `junit_report` or `exit_code`), the
+matching `tests_run` and `tests_failed` from the report, and a `detail` line
+explaining the outcome. These fields are optional so older runs stay valid.
+
 ## Vaccine results
 
 | Status | Meaning | Counts in score |
 |---|---|---|
-| `detected` | Semgrep matched the target file, or the tests failed (exit 1), or both | yes, as caught |
+| `detected` | Semgrep matched the target file, or the tests ran and failed, or both | yes, as caught |
 | `escaped` | The patch applied, tests passed and the rule did not match | yes, as missed |
-| `invalid` | The patch does not apply, or it breaks the test run itself (exit 2-5) | no |
+| `invalid` | The patch does not apply, or it breaks the test run itself (outcome broken) | no |
 
 `score = detected / (detected + escaped)`, recorded with 4 decimals.
 

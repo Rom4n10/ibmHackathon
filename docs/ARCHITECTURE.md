@@ -7,8 +7,9 @@
    custom mode. Anything deterministic (running tests, running Semgrep,
    applying patches, computing scores) is the CLI's job. This keeps evidence
    trustworthy and saves Bobcoins: Bob never spends tokens simulating a test run.
-2. **Proof over opinion.** A twin is confirmed only by a real test failure
-   (pytest exit code 1) recorded by the CLI.
+2. **Proof over opinion.** A twin is confirmed only by a test that ran and
+   failed, read by the CLI from the test runner's JUnit report (or from pytest's
+   exit codes when no report is configured).
 3. **Isolation.** Vaccine variants are applied in a temporary `git worktree`,
    never in the developer's checkout.
 4. **Everything lives in the repo.** No server, no database. Runs and
@@ -27,7 +28,8 @@
 | Skills | `antibody/bob_template/bob/skills/antibody-*/` | One instruction set per phase |
 | Slash command | `antibody/bob_template/bob/commands/antibody.md` | `/antibody <sha>` entry point |
 | CLI | `antibody/cli.py` | Commands Bob and humans call |
-| Evidence runner | `antibody/prove.py` | Runs a test, records red/green evidence |
+| Test runners | `antibody/runners.py` | Profiles per language, runs tests, reads JUnit reports |
+| Evidence | `antibody/prove.py` | Records red/green evidence for a candidate |
 | Vaccine engine | `antibody/vaccine.py` | Worktree, patches, Semgrep, tests, score |
 | Memory | `antibody/memory.py` | Permanent antibody, history, scoreboard data |
 | Contracts | `antibody/schemas/*.schema.json` | JSON Schema for every file exchanged |
@@ -86,10 +88,20 @@ on every merged PR labeled `bug`). That is out of scope for the hackathon MVP.
 ## Evidence integrity
 
 - Verdict and vaccine files carry `recorded_by: "antibody-cli"` and timestamps.
-- Red evidence requires exit code 1. Exit 0 means the bug was not shown;
-  exit 2 to 5 means the test itself is broken.
+- Red evidence requires the target test to appear in the runner's JUnit report
+  as failed. A test that passed means the bug was not shown. No report, a test
+  missing from it, only skipped tests, or a file that failed to load (Vitest
+  reports import errors as a test named after the file) mean the test is broken.
+  Exit codes alone are not trusted: Jest, Maven or dotnet exit 1 both for a
+  failing test and for code that does not compile.
+- Reports are written to a fresh path per run; for runners that write to a fixed
+  folder (Maven, Gradle), reports older than the run are ignored.
+- Without a report (no profile, or a custom `test_command` without
+  `test_report`), pytest exit codes apply: 1 is a failure, 0 a pass, 2 to 5 broken.
 - Tests inside the vaccine worktree run with `PYTHONPATH` pointing at the worktree,
   so an editable install of the main checkout cannot shadow the patched code.
+  Untracked dependency folders (`node_modules`, `vendor`) are linked into the
+  worktree, never copied, and the links are removed before the worktree is.
 - Vaccine rounds refuse to run on a dirty tree (fixes and tests must be
   committed) and record the SHA-256 of the rule used.
 - Variants that break the test run itself are marked `invalid` and excluded
@@ -101,8 +113,11 @@ on every merged PR labeled `bug`). That is out of scope for the hackathon MVP.
 
 ## Extension points
 
-- **Other languages:** `test_command` in `.antibody/config.json` accepts any
-  command; skills need language-specific guidance.
+- **Other languages:** a new entry in `PROFILES` (`antibody/runners.py`) with the
+  runner's command and where it writes its JUnit report. Any key can also be
+  overridden per project in `.antibody/config.json`. Mark it `verified` only
+  once it has a fixture in `tests/e2e/fixtures/`, a spec in `tests/e2e/run_e2e.py`
+  and a green job in the `e2e` workflow.
 - **CI guard:** `examples/ci/antibody-guard.yml` runs every antibody rule on
   each pull request.
 - **Backtest:** run Antibody on an old fix and check whether it would have found
